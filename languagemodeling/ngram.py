@@ -1,6 +1,9 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
 import math
+import os
+
+import nltk
 
 
 class LanguageModel(object):
@@ -54,7 +57,13 @@ class NGram(LanguageModel):
         count = defaultdict(int)
 
         # WORK HERE!!
-
+        for sent in sents:
+            nsent = ['<s>'] * (n - 1) + sent
+            for i in range(len(nsent) - n + 1):
+                ngram = tuple(nsent[i:i + n])
+                nm1gram = tuple(nsent[i:i + n - 1])
+                count[ngram] += 1
+                count[nm1gram] += 1
         self._count = dict(count)
 
     def count(self, tokens):
@@ -174,3 +183,4 @@ class InterpolatedNGram(NGram):
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
         # WORK HERE!!
+
