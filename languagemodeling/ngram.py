@@ -65,6 +65,8 @@ class NGram(LanguageModel):
                 count[ngram] += 1
                 count[nm1gram] += 1
         self._count = dict(count)
+        self._types = len(self._count.keys())
+        self._tokens = sum(self._count.values())
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -80,6 +82,11 @@ class NGram(LanguageModel):
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
         # WORK HERE!!
+        if prev_tokens is not None:
+            p = self.count(prev_tokens + token) / self.count(prev_tokens)
+        else:
+            p = self.count(token) / self._tokens
+        return p
 
     def sent_prob(self, sent):
         """Probability of a sentence. Warning: subject to underflow problems.

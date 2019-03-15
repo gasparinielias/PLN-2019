@@ -18,6 +18,7 @@ import pickle
 
 from nltk.corpus import gutenberg
 
+from languagemodeling.scripts import corpus_helper
 from languagemodeling.ngram import NGram
 
 
@@ -31,7 +32,8 @@ if __name__ == '__main__':
 
     # load the data
     # WORK HERE!! LOAD YOUR TRAINING CORPUS
-    sents = gutenberg.sents(['austen-emma.txt', 'austen-sense.txt'])
+    # sents = gutenberg.sents(['austen-emma.txt', 'austen-sense.txt'])
+    sents = corpus_helper.load_corpus('1.corpus')
 
     # train the model
     n = int(opts['-n'])
