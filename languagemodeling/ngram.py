@@ -58,15 +58,13 @@ class NGram(LanguageModel):
 
         # WORK HERE!!
         for sent in sents:
-            nsent = ['<s>'] * (n - 1) + sent
+            nsent = ['<s>'] * (n - 1) + sent + ['</s>']
             for i in range(len(nsent) - n + 1):
                 ngram = tuple(nsent[i:i + n])
                 nm1gram = tuple(nsent[i:i + n - 1])
                 count[ngram] += 1
                 count[nm1gram] += 1
         self._count = dict(count)
-        self._types = len(self._count.keys())
-        self._tokens = sum(self._count.values())
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -81,11 +79,15 @@ class NGram(LanguageModel):
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        # WORK HERE!!
-        if prev_tokens is not None:
-            p = self.count(prev_tokens + token) / self.count(prev_tokens)
-        else:
-            p = self.count(token) / self._tokens
+        assert((prev_tokens is not None) or self._n == 1)
+
+        if prev_tokens is None:
+            prev_tokens = ()
+
+        try:
+            p = self.count(prev_tokens + (token,)) / self.count(prev_tokens)
+        except ZeroDivisionError: # prev_tokens never seen
+            p = 0
         return p
 
     def sent_prob(self, sent):
@@ -93,7 +95,14 @@ class NGram(LanguageModel):
 
         sent -- the sentence as a list of tokens.
         """
-        # WORK HERE !!
+        n = self._n
+        p = 1
+        sent = ['<s>'] * (n - 1) + sent + ['</s>']
+        for i in range(len(sent) - n + 1):
+            token = sent[i + n - 1]
+            prev_tokens = tuple(sent[i:i + n - 1])
+            p *= self.cond_prob(token, prev_tokens)
+        return p
 
     def sent_log_prob(self, sent):
         """Log-probability of a sentence.
