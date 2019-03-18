@@ -84,11 +84,9 @@ class NGram(LanguageModel):
         if prev_tokens is None:
             prev_tokens = ()
 
-        try:
-            p = self.count(prev_tokens + (token,)) / self.count(prev_tokens)
-        except ZeroDivisionError: # prev_tokens never seen
-            p = 0
-        return p
+        if self.count(prev_tokens) == 0:
+            return 0
+        return self.count(prev_tokens + (token,)) / self.count(prev_tokens)
 
     def sent_prob(self, sent):
         """Probability of a sentence. Warning: subject to underflow problems.
@@ -109,7 +107,16 @@ class NGram(LanguageModel):
 
         sent -- the sentence as a list of tokens.
         """
-        # WORK HERE!!
+        n = self._n
+        p = 0
+        sent = ['<s>'] * (n - 1) + sent + ['</s>']
+        for i in range(len(sent) - n + 1):
+            token = sent[i + n - 1]
+            prev_tokens = tuple(sent[i:i + n - 1])
+            if self.cond_prob(token, prev_tokens) == 0:
+                return -math.inf
+            p += math.log(self.cond_prob(token, prev_tokens), 2)
+        return p
 
 
 class AddOneNGram(NGram):
