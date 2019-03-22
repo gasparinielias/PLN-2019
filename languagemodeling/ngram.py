@@ -227,3 +227,24 @@ class InterpolatedNGram(NGram):
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
         assert((prev_tokens is not None) or self._n == 1)
+
+        if prev_tokens is None:
+            prev_tokens = ()
+
+        # Compute lambdas
+        lambdas = []
+        for i in range(self._n - 1):
+            c_prev = self.count(prev_tokens[i:])
+            if c_prev + self._gamma == 0:
+                lambdas.append(0)
+            else:
+                lambdas.append((1 - sum(lambdas)) * c_prev / \
+                    (c_prev + self._gamma))
+        lambdas.append(1 - sum(lambdas))
+
+        p = 0
+        for i in range(self._n):
+            if lambdas[i] != 0:
+                p += lambdas[i] * self.count(prev_tokens[i:] + (token,)) / \
+                    self.count(prev_tokens[i:])
+        return p
