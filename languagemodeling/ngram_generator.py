@@ -1,6 +1,8 @@
 from collections import defaultdict
 import random
 
+from languagemodeling.consts import START_TOKEN, END_TOKEN
+
 
 class NGramGenerator(object):
 
@@ -28,8 +30,8 @@ class NGramGenerator(object):
 
     def generate_sent(self):
         """Randomly generate a sentence."""
-        sent = ['<s>'] * (self._n - 1)
-        while '</s>' not in sent:
+        sent = [START_TOKEN] * (self._n - 1)
+        while END_TOKEN not in sent:
             u = random.random()
             last_ngram = tuple(sent[len(sent) - self._n + 1:])
             probs = self._sorted_probs[last_ngram]

@@ -1,9 +1,8 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
 import math
-import os
 
-import nltk
+from languagemodeling.consts import START_TOKEN, END_TOKEN
 
 
 class LanguageModel(object):
@@ -41,7 +40,17 @@ class LanguageModel(object):
 
         sents -- the sentences.
         """
-        # WORK HERE!!
+        perplexity = 0
+        for sent in sents:
+            wc = len(sent) + 1
+            sent = [START_TOKEN] * (self._n - 1) + sent + [END_TOKEN]
+            p = 1
+            for i in range(len(sent) - self._n + 1):
+                p *= self.cond_prob(sent[i + self._n - 1],
+                    tuple(sent[i: i + self._n - 1]))
+            perplexity += p ** (-1 / wc)
+        perplexity /= len(sents)
+        return perplexity
 
 
 class NGram(LanguageModel):
@@ -58,7 +67,7 @@ class NGram(LanguageModel):
 
         # WORK HERE!!
         for sent in sents:
-            nsent = ['<s>'] * (n - 1) + sent + ['</s>']
+            nsent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
             for i in range(len(nsent) - n + 1):
                 ngram = tuple(nsent[i:i + n])
                 nm1gram = tuple(nsent[i:i + n - 1])
@@ -95,7 +104,7 @@ class NGram(LanguageModel):
         """
         n = self._n
         p = 1
-        sent = ['<s>'] * (n - 1) + sent + ['</s>']
+        sent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
         for i in range(len(sent) - n + 1):
             token = sent[i + n - 1]
             prev_tokens = tuple(sent[i:i + n - 1])
@@ -109,7 +118,7 @@ class NGram(LanguageModel):
         """
         n = self._n
         p = 0
-        sent = ['<s>'] * (n - 1) + sent + ['</s>']
+        sent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
         for i in range(len(sent) - n + 1):
             token = sent[i + n - 1]
             prev_tokens = tuple(sent[i:i + n - 1])
@@ -134,7 +143,7 @@ class AddOneNGram(NGram):
         for sent in sents:
             for word in sent:
                 voc.add(word)
-        voc.add('</s>')
+        voc.add(END_TOKEN)
 
         self._V = len(voc)  # vocabulary size
 
@@ -154,8 +163,6 @@ class AddOneNGram(NGram):
         if prev_tokens is None:
             prev_tokens = ()
 
-        if self.count(prev_tokens) == 0:
-            return 0
         return (self.count(prev_tokens + (token,)) + 1) / (self.count(prev_tokens) + self._V)
 
 
@@ -186,7 +193,7 @@ class InterpolatedNGram(NGram):
         self._count = defaultdict(int)
         for sent in train_sents:
             self._count[()] += len(sent) + 1
-            sent = ['<s>'] * (n - 1) + sent + ['</s>']
+            sent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
 
             # Count all i-grams
             for i in range(1, n + 1):
@@ -201,7 +208,7 @@ class InterpolatedNGram(NGram):
             for sent in train_sents:
                 for word in sent:
                     voc.add(word)
-            voc.add('</s>')
+            voc.add(END_TOKEN)
 
             self._V = len(voc)
 
