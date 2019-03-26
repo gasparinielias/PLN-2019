@@ -26,31 +26,26 @@ class LanguageModel(object):
 
         sents -- the sentences.
         """
-        # WORK HERE!!
+        log_p = 0
+        for sent in sents:
+            log_p += self.sent_log_prob(sent)
+        return log_p
 
     def cross_entropy(self, sents):
         """Cross-entropy of a list of sentences.
 
         sents -- the sentences.
         """
-        # WORK HERE!!
+        wc = sum(map(len, sents)) + len(sents) # each sent lacking of END_TOKEN
+        ce = - self.log_prob(sents) / wc
+        return ce
 
     def perplexity(self, sents):
         """Perplexity of a list of sentences.
 
         sents -- the sentences.
         """
-        perplexity = 0
-        for sent in sents:
-            wc = len(sent) + 1
-            sent = [START_TOKEN] * (self._n - 1) + sent + [END_TOKEN]
-            p = 1
-            for i in range(len(sent) - self._n + 1):
-                p *= self.cond_prob(sent[i + self._n - 1],
-                    tuple(sent[i: i + self._n - 1]))
-            perplexity += p ** (-1 / wc)
-        perplexity /= len(sents)
-        return perplexity
+        return 2 ** self.cross_entropy(sents)
 
 
 class NGram(LanguageModel):
