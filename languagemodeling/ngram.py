@@ -1,8 +1,9 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
 import math
+import numpy as np
 
-from languagemodeling.consts import START_TOKEN, END_TOKEN
+from languagemodeling.consts import START_TOKEN, END_TOKEN, GAMMA_MAX, LINSP_NUM
 
 
 class LanguageModel(object):
@@ -85,8 +86,7 @@ class NGram(LanguageModel):
         """
         assert((prev_tokens is not None) or self._n == 1)
 
-        if prev_tokens is None:
-            prev_tokens = ()
+        prev_tokens = prev_tokens or ()
 
         if self.count(prev_tokens) == 0:
             return 0
@@ -155,8 +155,7 @@ class AddOneNGram(NGram):
         """
         assert((prev_tokens is not None) or self._n == 1)
 
-        if prev_tokens is None:
-            prev_tokens = ()
+        prev_tokens = prev_tokens or ()
 
         return (self.count(prev_tokens + (token,)) + 1) / (self.count(prev_tokens) + self._V)
 
@@ -212,8 +211,17 @@ class InterpolatedNGram(NGram):
             self._gamma = gamma
         else:
             print('Computing gamma...')
-            # WORK HERE!!
             # use grid search to choose gamma
+            best_gamma = None
+            best_perplexity = math.inf
+            for gamma in np.linspace(0, GAMMA_MAX, LINSP_NUM):
+                self._gamma = gamma
+                perplexity = self.perplexity(held_out_sents)
+                if best_gamma is None or perplexity < best_perplexity:
+                    best_gamma = gamma
+                    perplexity = best_perplexity
+            self._gamma = best_gamma
+
 
     def count(self, tokens):
         """Count for an k-gram for k <= n.
@@ -230,19 +238,36 @@ class InterpolatedNGram(NGram):
         """
         assert((prev_tokens is not None) or self._n == 1)
 
-        if prev_tokens is None:
-            prev_tokens = ()
+        prev_tokens = prev_tokens or ()
 
-        # Compute lambdas
+        lambdas = self._compute_lambdas(prev_tokens)
+
+        probs = []
+        for i in range(self._n):
+            if self.count(prev_tokens[i:]) != 0:
+                probs.append(self.count(prev_tokens[i:] + (token,)) / \
+                    self.count(prev_tokens[i:]))
+            else:
+                probs.append(0)
+
+        if self._addone:
+            probs[-1] = (self.count((token,)) + 1) / (self.count(()) + self._V)
+
+        return sum(l * p for l, p in zip(lambdas, probs))
+
+    def _compute_lambdas(self, prev_tokens):
         lambdas = []
+        lambda_sum = 0
         for i in range(self._n - 1):
             c_prev = self.count(prev_tokens[i:])
-            if c_prev + self._gamma == 0:
+            if c_prev == 0:
                 lambdas.append(0)
             else:
-                lambdas.append((1 - sum(lambdas)) * c_prev / \
+                lambdas.append((1 - lambda_sum) * c_prev / \
                     (c_prev + self._gamma))
+            lambda_sum += lambdas[-1]
         lambdas.append(1 - sum(lambdas))
+        return lambdas
 
         p = 0
         for i in range(self._n):
