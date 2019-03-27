@@ -26,13 +26,14 @@ if __name__ == '__main__':
 
     # load the data
     # WORK HERE!! LOAD YOUR EVALUATION CORPUS
-    sents = gutenberg.sents('austen-persuasion.txt')
+    # sents = gutenberg.sents('austen-persuasion.txt')
+    with open('sents', 'rb') as fp:
+        [train_sents, test_sents] = pickle.load(fp)
 
     # compute the cross entropy
-    # WORK HERE!!
-    log_prob = None
-    e = None
-    p = None
+    log_prob = model.log_prob(test_sents)
+    e = model.cross_entropy(test_sents)
+    p = model.perplexity(test_sents)
 
     print('Log probability: {}'.format(log_prob))
     print('Cross entropy: {}'.format(e))
