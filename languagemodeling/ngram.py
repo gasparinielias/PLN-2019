@@ -58,18 +58,35 @@ class NGram(LanguageModel):
         """
         assert n > 0
         self._n = n
+        self._addone = False
 
-        count = defaultdict(int)
+        self._compute_counts(sents)
 
-        # WORK HERE!!
+    def _compute_counts(self, sents, all_ngrams=False):
+        n = self._n
+        self._count = count = defaultdict(int)
+
+        min_ngram = 1 if all_ngrams else max(n - 1, 1)
+        for i in range(min_ngram, n):
+            count[('<s>',) * i] += len(sents)
+
         for sent in sents:
-            nsent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
-            for i in range(len(nsent) - n + 1):
-                ngram = tuple(nsent[i:i + n])
-                nm1gram = tuple(nsent[i:i + n - 1])
-                count[ngram] += 1
-                count[nm1gram] += 1
-        self._count = dict(count)
+            count[()] += len(sent) + 1
+            sent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
+
+            for i in range(min_ngram, n + 1):
+                for j in range(n - i, len(sent) - i + 1):
+                    count[tuple(sent[j:j + i])] += 1
+
+        if self._addone:
+            print('Computing vocabulary...')
+            self._voc = voc = set()
+            for sent in sents:
+                for word in sent:
+                    voc.add(word)
+            voc.add(END_TOKEN)
+
+            self._V = len(voc)
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -130,17 +147,11 @@ class AddOneNGram(NGram):
         n -- order of the model.
         sents -- list of sentences, each one being a list of tokens.
         """
-        # call superclass to compute counts
-        super().__init__(n, sents)
+        assert(n > 0)
 
-        # compute vocabulary
-        self._voc = voc = set()
-        for sent in sents:
-            for word in sent:
-                voc.add(word)
-        voc.add(END_TOKEN)
-
-        self._V = len(voc)  # vocabulary size
+        self._n = n
+        self._addone = True
+        self._compute_counts(sents)
 
     def V(self):
         """Size of the vocabulary.
@@ -183,28 +194,8 @@ class InterpolatedNGram(NGram):
             held_out_sents = sents[m:]
 
         print('Computing counts...')
-        # COMPUTE COUNTS FOR ALL K-GRAMS WITH K <= N
-        self._count = defaultdict(int)
-        for sent in train_sents:
-            self._count[()] += len(sent) + 1
-            sent = [START_TOKEN] * (n - 1) + sent + [END_TOKEN]
-
-            # Count all i-grams
-            for i in range(1, n + 1):
-                for j in range(n - i, len(sent) - i + 1):
-                    self._count[tuple(sent[j:j + i])] += 1
-
-        # compute vocabulary size for add-one in the last step
         self._addone = addone
-        if addone:
-            print('Computing vocabulary...')
-            self._voc = voc = set()
-            for sent in train_sents:
-                for word in sent:
-                    voc.add(word)
-            voc.add(END_TOKEN)
-
-            self._V = len(voc)
+        self._compute_counts(train_sents, all_ngrams=True)
 
         # compute gamma if not given
         if gamma is not None:
@@ -283,8 +274,17 @@ class BackOffNGram(NGram):
         addone -- whether to use addone smoothing (default: True).
         """
 
-        super().__init__(n, sents)
+        if beta is not None:
+            # everything is training data
+            train_sents = sents
+        else:
+            # 90% training, 10% held-out
+            m = int(0.9 * len(sents))
+            train_sents = sents[:m]
+            held_out_sents = sents[m:]
 
+        self._addone = addone
+        self._compute_counts(train_sents, all_ngrams=True)
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
