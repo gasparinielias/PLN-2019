@@ -277,29 +277,51 @@ class BackOffNGram(NGram):
         if beta is not None:
             # everything is training data
             train_sents = sents
+            self._beta = beta
         else:
             # 90% training, 10% held-out
             m = int(0.9 * len(sents))
             train_sents = sents[:m]
             held_out_sents = sents[m:]
 
+        self._n = n
         self._addone = addone
         self._compute_counts(train_sents, all_ngrams=True)
+        self._compute_A()
+
+    def _compute_A(self):
+        self._A = a = defaultdict(list)
+        for kgram in self._count.keys():
+            if len(kgram) > 1:
+                a[kgram[:-1]].append(kgram[-1])
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
+        return self._A[tokens]
 
-    def alpha(self, tokens):
+    def alpha(self, kgram):
         """Missing probability mass for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
+        quotients = [
+            self.count_minus_beta(kgram + (token,)) /
+            self.count(kgram + (token,))
+            for token in self.A(kgram)
+        ]
+        return 1 - sum(quotients)
 
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
+
+    def count(self, tokens):
+        return self._count[tokens]
+
+    def count_minus_beta(self, tokens):
+        return self._count[tokens] - self._beta
