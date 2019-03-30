@@ -263,7 +263,7 @@ class InterpolatedNGram(NGram):
 
 class BackOffNGram(NGram):
 
-    def __init__(self, n, sents, beta=None, addone=True):
+    def __init__(self, n, sents, beta=None, addone=False):
         """
         Back-off NGram model with discounting as described by Michael Collins.
 
@@ -290,10 +290,10 @@ class BackOffNGram(NGram):
         self._compute_A()
 
     def _compute_A(self):
-        self._A = a = defaultdict(list)
+        self._A = a = defaultdict(set)
         for kgram in self._count.keys():
-            if len(kgram) > 1:
-                a[kgram[:-1]].append(kgram[-1])
+            if len(kgram) > 0:
+                a[kgram[:-1]].add(kgram[-1])
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
@@ -307,10 +307,11 @@ class BackOffNGram(NGram):
  
         tokens -- the k-gram tuple.
         """
+        tokens = self.A(kgram)
         quotients = [
-            self.count_minus_beta(kgram + (token,)) /
-            self.count(kgram + (token,))
-            for token in self.A(kgram)
+            (self.count(kgram + (token,)) - self._beta) / \
+            self.count(kgram)
+            for token in tokens
         ]
         return 1 - sum(quotients)
 
@@ -319,9 +320,29 @@ class BackOffNGram(NGram):
  
         tokens -- the k-gram tuple.
         """
+        probs = [self.cond_prob(token, tokens[1:])
+            for token in self.A(tokens)]
+        return 1 - sum(probs)
 
     def count(self, tokens):
         return self._count[tokens]
 
-    def count_minus_beta(self, tokens):
-        return self._count[tokens] - self._beta
+    def cond_prob(self, token, prev_tokens=None):
+        if prev_tokens == () or prev_tokens is None:
+            if self._addone:
+                return (self.count((token,)) + 1) / (self.count(()) + self._V)
+            else:
+                return self.count((token,)) / self.count(())
+
+        if token in self.A(prev_tokens):
+            p = (self.count(prev_tokens + (token,)) - self._beta) / \
+                    self.count(prev_tokens)
+        else:
+            denom = self.denom(prev_tokens)
+            if denom != 0:
+                p = self.alpha(prev_tokens) * \
+                    self.cond_prob(token, prev_tokens[1:]) / denom
+            else:
+                p = 0
+
+        return p
