@@ -37,7 +37,7 @@ class LanguageModel(object):
 
         sents -- the sentences.
         """
-        wc = sum(map(len, sents)) + len(sents) # each sent lacking of END_TOKEN
+        wc = sum(map(len, sents)) + len(sents)  # each sent lacking of END_TOKEN
         ce = - self.log_prob(sents) / wc
         return ce
 
@@ -101,7 +101,7 @@ class NGram(LanguageModel):
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        assert((prev_tokens is not None) or self._n == 1)
+        assert (prev_tokens is not None) or self._n == 1
 
         prev_tokens = prev_tokens or ()
 
@@ -147,7 +147,7 @@ class AddOneNGram(NGram):
         n -- order of the model.
         sents -- list of sentences, each one being a list of tokens.
         """
-        assert(n > 0)
+        assert n > 0
 
         self._n = n
         self._addone = True
@@ -164,11 +164,12 @@ class AddOneNGram(NGram):
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        assert((prev_tokens is not None) or self._n == 1)
+        assert (prev_tokens is not None) or self._n == 1
 
         prev_tokens = prev_tokens or ()
 
-        return (self.count(prev_tokens + (token,)) + 1) / (self.count(prev_tokens) + self._V)
+        return (self.count(prev_tokens + (token,)) + 1) / \
+            (self.count(prev_tokens) + self._V)
 
 
 class InterpolatedNGram(NGram):
@@ -213,7 +214,6 @@ class InterpolatedNGram(NGram):
                     perplexity = best_perplexity
             self._gamma = best_gamma
 
-
     def count(self, tokens):
         """Count for an k-gram for k <= n.
 
@@ -227,7 +227,7 @@ class InterpolatedNGram(NGram):
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        assert((prev_tokens is not None) or self._n == 1)
+        assert (prev_tokens is not None) or self._n == 1
 
         prev_tokens = prev_tokens or ()
 
@@ -236,8 +236,8 @@ class InterpolatedNGram(NGram):
         probs = []
         for i in range(self._n):
             if self.count(prev_tokens[i:]) != 0:
-                probs.append(self.count(prev_tokens[i:] + (token,)) / \
-                    self.count(prev_tokens[i:]))
+                probs.append(self.count(prev_tokens[i:] + (token,)) /
+                             self.count(prev_tokens[i:]))
             else:
                 probs.append(0)
 
@@ -254,8 +254,7 @@ class InterpolatedNGram(NGram):
             if c_prev == 0:
                 lambdas.append(0)
             else:
-                lambdas.append((1 - lambda_sum) * c_prev / \
-                    (c_prev + self._gamma))
+                lambdas.append((1 - lambda_sum) * c_prev / (c_prev + self._gamma))
             lambda_sum += lambdas[-1]
         lambdas.append(1 - sum(lambdas))
         return lambdas
@@ -297,31 +296,30 @@ class BackOffNGram(NGram):
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
- 
+
         tokens -- the k-gram tuple.
         """
         return self._A[tokens]
 
     def alpha(self, kgram):
         """Missing probability mass for a k-gram with 0 < k < n.
- 
+
         tokens -- the k-gram tuple.
         """
-        tokens = self.A(kgram)
         quotients = [
-            (self.count(kgram + (token,)) - self._beta) / \
+            (self.count(kgram + (token,)) - self._beta) /
             self.count(kgram)
-            for token in tokens
+            for token in self.A(kgram)
         ]
         return 1 - sum(quotients)
 
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
- 
+
         tokens -- the k-gram tuple.
         """
         probs = [self.cond_prob(token, tokens[1:])
-            for token in self.A(tokens)]
+                 for token in self.A(tokens)]
         return 1 - sum(probs)
 
     def count(self, tokens):
@@ -336,7 +334,7 @@ class BackOffNGram(NGram):
 
         if token in self.A(prev_tokens):
             p = (self.count(prev_tokens + (token,)) - self._beta) / \
-                    self.count(prev_tokens)
+                self.count(prev_tokens)
         else:
             denom = self.denom(prev_tokens)
             if denom != 0:
