@@ -344,3 +344,39 @@ class BackOffNGram(NGram):
                 p = 0
 
         return p
+
+
+class SentSorter():
+
+    def __init__(self, model):
+        self.model = model
+
+    def get_most_probable_token(self, possible_tokens, prev_tokens):
+        best_p = 0
+        best_t = ''
+        for token in possible_tokens:
+            p = self.model.cond_prob(token, prev_tokens)
+            if p > best_p:
+                best_p = p
+                best_t = token
+
+        return best_t
+
+    def sort_probable_sents(self, shuffled_sents):
+        """ Get the most probable sentences out of the shuffled ones
+            according to the model probabilities. """
+
+        n = self.model._n
+        sorted_sents = []
+        for s in shuffled_sents:
+            sent = s.copy()
+
+            new_sent = ['<s>'] * (n - 1)
+            while sent:
+                next_tok = self.get_most_probable_token(sent, tuple(new_sent[-n + 1:]))
+                new_sent += [next_tok]
+                sent.remove(next_tok)
+            new_sent = new_sent[n - 1:]
+            sorted_sents.append(new_sent)
+
+        return sorted_sents
