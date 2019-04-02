@@ -3,7 +3,7 @@ from collections import defaultdict
 import math
 import numpy as np
 
-from languagemodeling.consts import START_TOKEN, END_TOKEN, GAMMA_MAX, LINSP_NUM
+from languagemodeling.consts import *
 
 
 class LanguageModel(object):
@@ -201,17 +201,18 @@ class InterpolatedNGram(NGram):
         # compute gamma if not given
         if gamma is not None:
             self._gamma = gamma
-        else:
+        elif self._n > 1:
+            # Otherwise parameter gamma is not needed
             print('Computing gamma...')
             # use grid search to choose gamma
             best_gamma = None
             best_perplexity = math.inf
-            for gamma in np.linspace(0, GAMMA_MAX, LINSP_NUM):
+            for gamma in np.linspace(GAMMA_MIN, GAMMA_MAX, LINSP_NUM):
                 self._gamma = gamma
                 perplexity = self.perplexity(held_out_sents)
                 if best_gamma is None or perplexity < best_perplexity:
                     best_gamma = gamma
-                    perplexity = best_perplexity
+                    best_perplexity = perplexity
             self._gamma = best_gamma
 
     def count(self, tokens):
@@ -256,7 +257,7 @@ class InterpolatedNGram(NGram):
             else:
                 lambdas.append((1 - lambda_sum) * c_prev / (c_prev + self._gamma))
             lambda_sum += lambdas[-1]
-        lambdas.append(1 - sum(lambdas))
+        lambdas.append(1 - lambda_sum)
         return lambdas
 
 
