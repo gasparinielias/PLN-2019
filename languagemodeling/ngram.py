@@ -263,7 +263,7 @@ class InterpolatedNGram(NGram):
 
 class BackOffNGram(NGram):
 
-    def __init__(self, n, sents, beta=None, addone=False):
+    def __init__(self, n, sents, beta=None, addone=True):
         """
         Back-off NGram model with discounting as described by Michael Collins.
 
@@ -289,11 +289,26 @@ class BackOffNGram(NGram):
         self._compute_counts(train_sents, all_ngrams=True)
         self._compute_A()
 
+        if beta is None:
+            # Grid search to find beta
+            self._compute_beta(held_out_sents)
+
     def _compute_A(self):
         self._A = a = defaultdict(set)
         for kgram in self._count.keys():
-            if len(kgram) > 0:
+            if len(kgram) > 0 and kgram[-1] != START_TOKEN:
                 a[kgram[:-1]].add(kgram[-1])
+
+    def _compute_beta(self, sents):
+        best_perplexity = math.inf
+        best_beta = None
+        for beta in np.linspace(0.05, 0.95, 5):
+            self._beta = beta
+            perplexity = self.perplexity(sents)
+            if best_beta == None or best_perplexity > perplexity:
+                best_beta = self._beta
+                best_perplexity = perplexity
+        self._beta = best_beta
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
@@ -338,11 +353,9 @@ class BackOffNGram(NGram):
                 self.count(prev_tokens)
         else:
             denom = self.denom(prev_tokens)
-            if denom != 0:
-                p = self.alpha(prev_tokens) * \
-                    self.cond_prob(token, prev_tokens[1:]) / denom
-            else:
-                p = 0
+            # denom should not be 0, since token not in A(prev_tokens)
+            p = self.alpha(prev_tokens) * \
+                self.cond_prob(token, prev_tokens[1:]) / denom
 
         return p
 
