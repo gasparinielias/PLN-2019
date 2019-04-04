@@ -207,7 +207,7 @@ class InterpolatedNGram(NGram):
             # use grid search to choose gamma
             best_gamma = None
             best_perplexity = math.inf
-            for gamma in np.linspace(GAMMA_MIN, GAMMA_MAX, LINSP_NUM):
+            for gamma in np.linspace(GAMMA_MIN, GAMMA_MAX, GAMMA_LINSP_NUM):
                 self._gamma = gamma
                 perplexity = self.perplexity(held_out_sents)
                 if best_gamma is None or perplexity < best_perplexity:
@@ -293,6 +293,10 @@ class BackOffNGram(NGram):
             # Grid search to find beta
             self._compute_beta(held_out_sents)
 
+        self._compute_denoms()
+        print('Selected beta:', self._beta)
+
+
     def _compute_A(self):
         self._A = a = defaultdict(set)
         for kgram in self._count.keys():
@@ -300,15 +304,29 @@ class BackOffNGram(NGram):
                 a[kgram[:-1]].add(kgram[-1])
 
     def _compute_beta(self, sents):
+        print('Finding optimal beta...')
         best_perplexity = math.inf
         best_beta = None
-        for beta in np.linspace(0.05, 0.95, 5):
+        for beta in np.linspace(BETA_MIN, BETA_MAX, BETA_LINSP_NUM):
             self._beta = beta
+            self._compute_denoms()
+
             perplexity = self.perplexity(sents)
             if best_beta == None or best_perplexity > perplexity:
                 best_beta = self._beta
                 best_perplexity = perplexity
         self._beta = best_beta
+
+    def _compute_denoms(self):
+        self._denoms = defaultdict(float)
+        # Normalization factors for every k-gram 0 < k < n
+        for kgram in self._count.keys():
+            if len(kgram) == 0 or len(kgram) == self._n:
+                continue
+
+            probs = [self.cond_prob(token, kgram[1:])
+                     for token in self.A(kgram)]
+            self._denoms[kgram] = 1 - sum(probs)
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
@@ -322,24 +340,17 @@ class BackOffNGram(NGram):
 
         tokens -- the k-gram tuple.
         """
-        quotients = [
-            (self.count(kgram + (token,)) - self._beta) /
-            self.count(kgram)
-            for token in self.A(kgram)
-        ]
-        return 1 - sum(quotients)
+        len_A = len(self.A(kgram))
+        if len_A:
+            return self._beta * len_A / self.count(kgram)
 
-    def denom(self, tokens):
-        """Normalization factor for a k-gram with 0 < k < n.
-
-        tokens -- the k-gram tuple.
-        """
-        probs = [self.cond_prob(token, tokens[1:])
-                 for token in self.A(tokens)]
-        return 1 - sum(probs)
+        return 1
 
     def count(self, tokens):
         return self._count[tokens]
+
+    def denom(self, kgram):
+        return self._denoms.get(kgram, 1)
 
     def cond_prob(self, token, prev_tokens=None):
         if prev_tokens == () or prev_tokens is None:
@@ -353,7 +364,6 @@ class BackOffNGram(NGram):
                 self.count(prev_tokens)
         else:
             denom = self.denom(prev_tokens)
-            # denom should not be 0, since token not in A(prev_tokens)
             p = self.alpha(prev_tokens) * \
                 self.cond_prob(token, prev_tokens[1:]) / denom
 
