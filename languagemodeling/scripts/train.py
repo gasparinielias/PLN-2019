@@ -56,7 +56,7 @@ def get_sents(load_sents):
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    load_sents = True
+    load_sents = False
     train_sents, test_sents = get_sents(load_sents)
 
     # train the model
