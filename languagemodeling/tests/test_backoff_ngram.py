@@ -141,7 +141,7 @@ class TestBackoffNGram(TestCase):
             ('salame', 'come'): 0.0,  # back-off to the unigram that is 0.0
         }
         for (token, prev), p in probs.items():
-            self.assertAlmostEqual(model.cond_prob(token, [prev]), p, msg=token)
+            self.assertAlmostEqual(model.cond_prob(token, (prev,)), p, msg=token)
 
     def test_cond_prob_normalization_2gram_no_addone(self):
         model = BackOffNGram(2, self.sents, beta=0.5, addone=False)
@@ -163,7 +163,7 @@ class TestBackoffNGram(TestCase):
             ('salmón', 'el'): alpha * 1.0 / (12.0 * denom),
         }
         for (token, prev), p in probs.items():
-            self.assertAlmostEqual(model.cond_prob(token, [prev]), p, msg=(token, prev))
+            self.assertAlmostEqual(model.cond_prob(token, (prev,)), p, msg=(token, prev))
 
         # the sum is one:
         prob_sum = sum(probs.values())
@@ -178,7 +178,7 @@ class TestBackoffNGram(TestCase):
             ('salame', 'come'): 0.0,  # back-off to the unigram that is 0.0
         }
         for (token, prev), p in probs.items():
-            self.assertAlmostEqual(model.cond_prob(token, [prev]), p, msg=(token))
+            self.assertAlmostEqual(model.cond_prob(token, (prev,)), p, msg=(token))
 
     def test_norm_1gram(self):
         models = [
@@ -208,7 +208,7 @@ class TestBackoffNGram(TestCase):
 
         for model in models:
             for prev in prevs:
-                prob_sum = sum(model.cond_prob(token, [prev]) for token in tokens)
+                prob_sum = sum(model.cond_prob(token, (prev,)) for token in tokens)
                 # prob_sum < 1.0 or almost equal to 1.0:
                 self.assertAlmostLessEqual(prob_sum, 1.0, msg=prev)
 
@@ -228,7 +228,7 @@ class TestBackoffNGram(TestCase):
 
         for model in models:
             for prev in prevs:
-                prob_sum = sum(model.cond_prob(token, prev) for token in tokens)
+                prob_sum = sum(model.cond_prob(token, tuple(prev)) for token in tokens)
                 # prob_sum < 1.0 or almost equal to 1.0:
                 self.assertAlmostLessEqual(prob_sum, 1.0, msg=prev)
 

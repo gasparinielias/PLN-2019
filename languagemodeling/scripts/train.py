@@ -1,7 +1,7 @@
 """Train an n-gram model.
 
 Usage:
-  train.py [-m <model>] -n <n> -o <file> [-a] [-g <gamma>]
+  train.py [-m <model>] -n <n> -o <file> [-a] [-g <gamma>] [-b <beta]
   train.py -h | --help
 
 Options:
@@ -13,6 +13,7 @@ Options:
   -o <file>     Output model file.
   -a            Addone = True (only for InterpolatedNGram model)
   -g <gamma>    Gamma (InterpolatedNGram model) [default: None]
+  -b <beta>     Beta (Backoff model) [default: None]
   -h --help     Show this screen.
 """
 from docopt import docopt
@@ -22,14 +23,15 @@ import numpy as np
 from nltk.corpus import gutenberg
 
 from languagemodeling.consts import MODELS_DIR, SEED, TRAIN_PER
-from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram
+from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram, BackOffNGram
 from languagemodeling.scripts import corpus_helper
 
 
 models = {
     'ngram': NGram,
     'addone': AddOneNGram,
-    'inter': InterpolatedNGram
+    'inter': InterpolatedNGram,
+    'backoff': BackOffNGram
 }
 
 def get_sents(load_sents):
@@ -39,7 +41,6 @@ def get_sents(load_sents):
     else:
         # load the data
         sents = corpus_helper.load_corpus('lavoz.corpus')
-        sents = np.unique(sents)
         np.random.seed(SEED)
         np.random.shuffle(sents)
 
@@ -55,19 +56,22 @@ def get_sents(load_sents):
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    load_sents = False
+    load_sents = True
     train_sents, test_sents = get_sents(load_sents)
 
     # train the model
     n = int(opts['-n'])
     model_class = models[opts['-m']]
-    addone = '-a' in opts.keys()
-    gamma = None if opts['-g'] == 'None' else float(opts['-g'])
+    addone =  opts['-a']
+    gamma = float(opts['-g']) if opts['-g'] != 'None' else None
+    beta = float(opts['-b']) if opts['-b'] != 'None' else None
 
-    if opts['-m'] != 'inter':
-        model = model_class(n, train_sents)
-    else:
+    if opts['-m'] == 'inter':
         model = model_class(n, train_sents, gamma=gamma, addone=addone)
+    elif opts['-m'] == 'backoff':
+        model = model_class(n, train_sents, beta=beta, addone=addone)
+    else:
+        model = model_class(n, train_sents)
 
     # save it
     filename = opts['-o']
