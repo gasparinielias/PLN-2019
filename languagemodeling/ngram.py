@@ -63,6 +63,7 @@ class NGram(LanguageModel):
         self._compute_counts(sents)
 
     def _compute_counts(self, sents, all_ngrams=False):
+        print('Computing counts...')
         n = self._n
         self._count = count = defaultdict(int)
 
@@ -194,7 +195,6 @@ class InterpolatedNGram(NGram):
             train_sents = sents[:m]
             held_out_sents = sents[m:]
 
-        print('Computing counts...')
         self._addone = addone
         self._compute_counts(train_sents, all_ngrams=True)
 
@@ -294,7 +294,7 @@ class BackOffNGram(NGram):
             self._compute_beta(held_out_sents)
 
         self._compute_denoms()
-        print('Selected beta:', self._beta)
+        self._compute_alpha()
 
 
     def _compute_A(self):
@@ -303,6 +303,13 @@ class BackOffNGram(NGram):
             if len(kgram) > 0 and kgram[-1] != START_TOKEN:
                 a[kgram[:-1]].add(kgram[-1])
 
+    def _compute_alpha(self):
+        self._alpha = {}
+        for kgram, A in self._A.items():
+            len_A = len(A)
+            if len_A:
+                self._alpha[kgram] = self._beta * len_A / self.count(kgram)
+
     def _compute_beta(self, sents):
         print('Finding optimal beta...')
         best_perplexity = math.inf
@@ -310,6 +317,7 @@ class BackOffNGram(NGram):
         for beta in np.linspace(BETA_MIN, BETA_MAX, BETA_LINSP_NUM):
             self._beta = beta
             self._compute_denoms()
+            self._compute_alpha()
 
             perplexity = self.perplexity(sents)
             if best_beta == None or best_perplexity > perplexity:
@@ -340,14 +348,7 @@ class BackOffNGram(NGram):
 
         tokens -- the k-gram tuple.
         """
-        len_A = len(self.A(kgram))
-        if len_A:
-            return self._beta * len_A / self.count(kgram)
-
-        return 1
-
-    def count(self, tokens):
-        return self._count[tokens]
+        return self._alpha.get(kgram, 1)
 
     def denom(self, kgram):
         return self._denoms.get(kgram, 1)
@@ -359,13 +360,17 @@ class BackOffNGram(NGram):
             else:
                 return self.count((token,)) / self.count(())
 
-        if token in self.A(prev_tokens):
+        if self.count(prev_tokens + (token,)):
             p = (self.count(prev_tokens + (token,)) - self._beta) / \
                 self.count(prev_tokens)
         else:
-            denom = self.denom(prev_tokens)
-            p = self.alpha(prev_tokens) * \
-                self.cond_prob(token, prev_tokens[1:]) / denom
+            alpha = self.alpha(prev_tokens)
+            if not alpha:
+                p = 0
+            else:
+                denom = self.denom(prev_tokens)
+                p = self.alpha(prev_tokens) * \
+                    self.cond_prob(token, prev_tokens[1:]) / denom
 
         return p
 
