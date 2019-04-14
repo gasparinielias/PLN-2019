@@ -1,11 +1,10 @@
 """Train a Sentiment Analysis model.
 
 Usage:
-  train.py [options] -i <corpus> -o <file>
+  train.py [options]
   train.py -h | --help
 
 Options:
-  -i <corpus>   Training corpus.
   -m <model>    Model to use [default: basemf]:
                   basemf: Most frequent sentiment
                   clf: Machine Learning Classifier
@@ -13,7 +12,6 @@ Options:
                   maxent: Maximum Entropy (i.e. Logistic Regression)
                   svm: Support Vector Machine
                   mnb: Multinomial Bayes
-  -o <file>    Output model file.
   -h --help     Show this screen.
 """
 from docopt import docopt
@@ -29,26 +27,46 @@ models = {
     'clf': SentimentClassifier,
 }
 
+corpus_files = [
+    'corpus/InterTASS/PE/intertass-PE-{}-tagged.xml',
+    'corpus/InterTASS/CR/intertass-CR-{}-tagged.xml',
+    'corpus/InterTASS/ES/intertass-ES-{}-tagged.xml',
+]
+
+models_output = [
+    'models/PE-svm.model',
+    'models/CR-svm.model',
+    'models/ES-svm.model'
+]
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    # load corpora
-    corpus = opts['-i']
-    reader = InterTASSReader(corpus)
-    X, y = list(reader.X()), list(reader.y())
+    for i in range(len(corpus_files)):
+        # load corpora
+        #corpus = opts['-i']
+        reader = InterTASSReader(corpus_files[i].format('train'))
+        X, y = list(reader.X()), list(reader.y())
+        reader = InterTASSReader(corpus_files[i].format('development'))
+        X_dev, y_dev = list(reader.X()), list(reader.y())
 
-    # train model
-    model_type = opts['-m']
-    if model_type == 'clf':
-        model = models[model_type](clf=opts['-c'])
-    else:
-        model = models[model_type]()  # baseline
+        # Cross validation format for GridSearchCV
+        train, = list(range(len(X))),
+        test   = list(range(len(X), len(X) + len(X_dev)))
+        X_all = X + X_dev
+        y_all = y + y_dev
 
-    model.fit(X, y)
+        # train model
+        model_type = opts['-m']
+        if model_type == 'clf':
+            model = models[model_type](clf=opts['-c'])
+        else:
+            model = models[model_type]()  # baseline
 
-    # save model
-    filename = opts['-o']
-    f = open(filename, 'wb')
-    pickle.dump(model, f)
-    f.close()
+        model.fit(X_all, y_all, train, test)
+
+        # save model
+        #filename = opts['-o']
+        f = open(models_output[i], 'wb')
+        pickle.dump(model, f)
+        f.close()
