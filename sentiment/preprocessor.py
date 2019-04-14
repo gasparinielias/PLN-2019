@@ -8,7 +8,7 @@ class preprocessor():
         urls_pat = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ' + \
                    ']|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
         vocals_rep_pat = r'(\w)\1{1,}'
-        laugh_pat = r'\b[ja]+\b'
+        laugh_pat = r'\b[ja]*j[ja]*\b'
         return re.sub(tagged_users_pat, '',
                re.sub(laugh_pat, LAUGH_TOKEN,
                re.sub(urls_pat, URL_TOKEN,

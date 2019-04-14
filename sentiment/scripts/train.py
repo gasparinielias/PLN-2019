@@ -34,9 +34,9 @@ corpus_files = [
 ]
 
 models_output = [
-    'models/PE-svm.model',
-    'models/CR-svm.model',
-    'models/ES-svm.model'
+    'models/PE-{}.model',
+    'models/CR-{}.model',
+    'models/ES-{}.model'
 ]
 
 if __name__ == '__main__':
@@ -67,6 +67,6 @@ if __name__ == '__main__':
 
         # save model
         #filename = opts['-o']
-        f = open(models_output[i], 'wb')
+        f = open(models_output[i].format(opts['-c']), 'wb')
         pickle.dump(model, f)
         f.close()

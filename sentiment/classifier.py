@@ -53,7 +53,6 @@ class SentimentClassifier(object):
             if accuracy > best_acc:
                 best_acc = accuracy
                 best_params = params
-                print(best_acc, best_params)
 
         X = [X[i] for i in train]
         y = [y[i] for i in train]
