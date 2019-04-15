@@ -63,7 +63,7 @@ if __name__ == '__main__':
         else:
             model = models[model_type]()  # baseline
 
-        model.fit(X_all, y_all, train, test)
+        model.fit(X_all, y_all, train, test, grid_search=True)
 
         # save model
         #filename = opts['-o']

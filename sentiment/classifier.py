@@ -30,24 +30,24 @@ class SentimentClassifier(object):
         """
         tokenize = neg_handling_tokenizer(
             max_negations=1,
-            filter_stopwords=True
+            filter_stopwords=False
         )
         preprocess = preprocessor()
         self._clf = clf
 
         self._pipeline = Pipeline([
             ('vect', CountVectorizer(
-                preprocessor=preprocess,
+                #preprocessor=preprocess,
                 tokenizer=tokenize,
-                binary=True,
+                #binary=True,
             )),
             ('clf', classifiers[self._clf]()),
         ])
 
-    def fit(self, X, y, train, test):
-        param_grid = ParameterGrid(grid_params[self._clf])
+    def fit(self, X, y, train, test, grid_search=True):
+        param_grid = ParameterGrid(grid_params[self._clf]) if grid_search else []
         best_acc = -1
-        best_params = None
+        best_params = {}
         for params in param_grid:
             accuracy, _, _ =  fit_grid_point(X, y, self._pipeline, params, train, test, score, 0)
             if accuracy > best_acc:
