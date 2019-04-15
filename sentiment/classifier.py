@@ -62,3 +62,6 @@ class SentimentClassifier(object):
 
     def predict(self, X):
         return self._pipeline.predict(X)
+
+    def predict_proba(self, X):
+        return self._pipeline.predict_proba(X)
