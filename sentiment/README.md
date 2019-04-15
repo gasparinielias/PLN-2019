@@ -56,13 +56,21 @@ Los resultados a continuación se obtuvieron clasificando con Multinomial Naive 
 | Accuracy          | 45.40%    | 55.93%    | 49.67%    |
 | Macro F1          | 34.42%    | 34.46%    | 44.12%    |
 
-Vistos estos resultados, se decidió contunuar sólamente agregando negaciones y cambiando el tokenizador,
-sin filtrar stopwords.
 
 ### Búsqueda de parámetros con grid-search
 Utilizando de sklearn.model\_selection ParameterGrid y fit\_grid\_point, se lograron encontrar parámetros
 mejores que los existentes por defecto. Tanto para SVM como para LinearRegression se variaron los
-parámetros "C" y "penalty". Para MNB se realizó la búsqueda sobre el parámetro "alpha".
+parámetros "C" y "penalty".
+Los mejores parámetros encontrados, con sus respectivos resultados, fueron:
+| Corpus-clf | penalty | C   | Accuracy | Macro F1  |
+|------------|---------|-----|----------|-----------|
+| PE-svm     | l1      | 0.1 | 49.60%   | 37.25%    |
+| PE-maxent  | l2      | 0.1 | 47.40%   | 34.47%    |
+| ES-svm     | l1      | 0.1 | 55.34%   | 46.69%    |
+| ES-maxent  | l2      | 0.2 | 55.53%   | 37.07%    |
+| CR-svm     | l1      | 0.5 | 48.33%   | 38.56%    |
+| CR-maxent  | l2      | 0.3 | 51.00%   | 38.83%    |
+
 
 ### Inspección de modelos
 Para la regresión logística entrenada con el corpus "ES", las features más negativas/positivas fueron

@@ -7,6 +7,7 @@ from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import ParameterGrid, fit_grid_point
 from sklearn.exceptions import NotFittedError
+from sklearn.metrics import accuracy_score
 
 from sentiment.tokenizer import neg_handling_tokenizer
 from sentiment.preprocessor import preprocessor
@@ -20,7 +21,7 @@ classifiers = {
 }
 
 def score(estimator, X, y):
-    return np.average(estimator.predict(X) == y)
+    return accuracy_score(y, estimator.predict(X))
 
 class SentimentClassifier(object):
 
@@ -30,16 +31,16 @@ class SentimentClassifier(object):
         """
         tokenize = neg_handling_tokenizer(
             max_negations=1,
-            filter_stopwords=False
+            filter_stopwords=True
         )
         preprocess = preprocessor()
         self._clf = clf
 
         self._pipeline = Pipeline([
             ('vect', CountVectorizer(
-                #preprocessor=preprocess,
+                preprocessor=preprocess,
                 tokenizer=tokenize,
-                #binary=True,
+                binary=True,
             )),
             ('clf', classifiers[self._clf]()),
         ])
