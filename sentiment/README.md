@@ -42,6 +42,7 @@ tokens, que de otra manera molestarían a la hora de clasificar.
 Los resultados a continuación se obtuvieron clasificando con Multinomial Naive Bayes
 
 | Metrics           | PE        | ES        | CR        |
+|-------------------|-----------|-----------|-----------|
 | *Prev results*    |           |           |           |
 | Accuracy          | 45.00%    | 54.55%    | 49.00%    |
 | Macro F1          | 30.82%    | 42.50%    | 47.31%    |
@@ -66,17 +67,21 @@ parámetros "C" y "penalty". Para MNB se realizó la búsqueda sobre el parámet
 ### Inspección de modelos
 Para la regresión logística entrenada con el corpus "ES", las features más negativas/positivas fueron
 - N:
-	> ! gracias buena : mejor ([-0.99926348 -0.54140291 -0.50538172 -0.49823128 -0.48591543])
-	> mismo odio ni triste no ([0.47739055 0.60890999 0.65199539 0.80367345 0.97239018])
+	* ! gracias buena : mejor ([-0.99926348 -0.54140291 -0.50538172 -0.49823128 -0.48591543])
+
+	* mismo odio ni triste no ([0.47739055 0.60890999 0.65199539 0.80367345 0.97239018])
 - NEU:
-	> # gracias hoy ! ? ([-0.55027125 -0.54565408 -0.44861801 -0.39353667 -0.38358295])
-	> NOT_pasa vez casa aunque sido ([0.33468925 0.35213721 0.37396061 0.3906679  0.410102  ])
+	* \# gracias hoy ! ? ([-0.55027125 -0.54565408 -0.44861801 -0.39353667 -0.38358295])
+
+	* NOT_pasa vez casa aunque sido ([0.33468925 0.35213721 0.37396061 0.3906679  0.410102  ])
 - NONE:
-	> no ... mal hoy ser ([-0.70112823 -0.49297417 -0.42632923 -0.34505574 -0.34179787])
-	> vídeo jugar alguna semana ? ([0.39499268 0.39759467 0.39960258 0.45413998 0.99736069])
+	* no ... mal hoy ser ([-0.70112823 -0.49297417 -0.42632923 -0.34505574 -0.34179787])
+
+	* vídeo jugar alguna semana ? ([0.39499268 0.39759467 0.39960258 0.45413998 0.99736069])
 - P:
-	> no triste ? ni odio ([-0.71764461 -0.50168295 -0.42048146 -0.39279131 -0.32097587])
-	> mejor genial buen gracias ! ([0.63658058 0.6450265  0.85123413 0.85493357 1.14742911])
+	* no triste ? ni odio ([-0.71764461 -0.50168295 -0.42048146 -0.39279131 -0.32097587])
+
+	* mejor genial buen gracias ! ([0.63658058 0.6450265  0.85123413 0.85493357 1.14742911])
 
 En general tiene sentido que palabras como "odio", "triste" sean asociadas con estados negativos,
 así como "mejor", "genial", "buen" con estados positivos. Sin embargo, aparece como muy relevante
