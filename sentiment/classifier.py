@@ -1,4 +1,4 @@
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score
 
 from sentiment import tokenizer, preprocessor
 from sentiment.settings import GRID_PARAMS
+from sentiment.tweet2vec import Tweet2Vec
 
 
 classifiers = {
@@ -23,7 +24,7 @@ def score(estimator, X, y):
 
 class SentimentClassifier():
 
-    def __init__(self, clf='svm'):
+    def __init__(self, fasttext_model, clf='svm'):
         """
         clf -- classifying model, one of 'svm', 'maxent', 'mnb' (default: 'svm').
         """
@@ -35,11 +36,14 @@ class SentimentClassifier():
         self._clf = clf
 
         self._pipeline = Pipeline([
-            ('vect', CountVectorizer(
-                preprocessor=preprocess,
-                tokenizer=tokenize,
-                binary=True,
-            )),
+            ('vect', FeatureUnion([
+                ('count_vec', CountVectorizer(
+                    preprocessor=preprocess,
+                    tokenizer=tokenize,
+                    binary=True,
+                )),
+                ('t2v', Tweet2Vec(fasttext_model)),
+            ])),
             ('clf', classifiers[self._clf]()),
         ])
 
