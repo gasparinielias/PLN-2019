@@ -14,8 +14,8 @@ Options:
                   mnb: Multinomial Bayes
   -h --help     Show this screen.
 """
-from docopt import docopt
 import pickle
+from docopt import docopt
 
 from sentiment.tass import InterTASSReader
 from sentiment.baselines import MostFrequent
@@ -39,20 +39,19 @@ models_output = [
     'models/ES-{}.model'
 ]
 
+
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
     for i in range(len(corpus_files)):
         # load corpora
-        #corpus = opts['-i']
         reader = InterTASSReader(corpus_files[i].format('train'))
         X, y = list(reader.X()), list(reader.y())
         reader = InterTASSReader(corpus_files[i].format('development'))
         X_dev, y_dev = list(reader.X()), list(reader.y())
 
-        # Cross validation format for GridSearchCV
-        train, = list(range(len(X))),
-        test   = list(range(len(X), len(X) + len(X_dev)))
+        train = list(range(len(X)))
+        test = list(range(len(X), len(X) + len(X_dev)))
         X_all = X + X_dev
         y_all = y + y_dev
 
@@ -66,7 +65,6 @@ if __name__ == '__main__':
         model.fit(X_all, y_all, train, test, grid_search=True)
 
         # save model
-        #filename = opts['-o']
         f = open(models_output[i].format(opts['-c']), 'wb')
         pickle.dump(model, f)
         f.close()

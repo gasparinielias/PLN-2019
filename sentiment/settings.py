@@ -1,4 +1,4 @@
-grid_params = {
+GRID_PARAMS = {
     'svm': [
         {
             'clf__C': [.1, .2, .3, .4, .5, .6],

@@ -1,17 +1,13 @@
-import numpy as np
-
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import ParameterGrid, fit_grid_point
-from sklearn.exceptions import NotFittedError
 from sklearn.metrics import accuracy_score
 
-from sentiment.tokenizer import neg_handling_tokenizer
-from sentiment.preprocessor import preprocessor
-from sentiment.settings import grid_params
+from sentiment import tokenizer, preprocessor
+from sentiment.settings import GRID_PARAMS
 
 
 classifiers = {
@@ -20,20 +16,22 @@ classifiers = {
     'svm': LinearSVC,
 }
 
+
 def score(estimator, X, y):
     return accuracy_score(y, estimator.predict(X))
 
-class SentimentClassifier(object):
+
+class SentimentClassifier():
 
     def __init__(self, clf='svm'):
         """
         clf -- classifying model, one of 'svm', 'maxent', 'mnb' (default: 'svm').
         """
-        tokenize = neg_handling_tokenizer(
+        tokenize = tokenizer.Tokenizer(
             max_negations=1,
             filter_stopwords=True
         )
-        preprocess = preprocessor()
+        preprocess = preprocessor.Preprocessor()
         self._clf = clf
 
         self._pipeline = Pipeline([
@@ -46,15 +44,17 @@ class SentimentClassifier(object):
         ])
 
     def fit(self, X, y, train, test, grid_search=True):
-        param_grid = ParameterGrid(grid_params[self._clf]) if grid_search else []
+        param_grid = ParameterGrid(GRID_PARAMS[self._clf]) if grid_search else []
         best_acc = -1
         best_params = {}
         for params in param_grid:
-            accuracy, _, _ =  fit_grid_point(X, y, self._pipeline, params, train, test, score, 0)
+            accuracy, _, _ = fit_grid_point(X, y, self._pipeline, params,
+                                            train, test, score, 0)
             if accuracy > best_acc:
                 best_acc = accuracy
                 best_params = params
 
+        # Refit using best params
         X = [X[i] for i in train]
         y = [y[i] for i in train]
         self._pipeline.set_params(**best_params)
