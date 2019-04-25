@@ -92,8 +92,45 @@ Para la regresión logística entrenada con el corpus "ES", las features más ne
 	* mejor genial buen gracias ! ([0.63658058 0.6450265  0.85123413 0.85493357 1.14742911])
 
 En general tiene sentido que palabras como "odio", "triste" sean asociadas con estados negativos,
-así como "mejor", "genial", "buen" con estados positivos. Sin embargo, aparece como muy relevante
-el signo de exclamación, incluso con la opción "Binary=True" en el CountVectorizer.
+así como "mejor", "genial", "buen" con estados positivos. Sin embargo, aparecen como muy relevantes
+varios signos de puntuación, incluso con la opción "Binary=True" en el CountVectorizer.
+Una posible solución sería filtrar los signos de puntuación que no sean emojis, para mantener la
+idea de que los emojis tienen una carga significante de sentimiento.
 
 
 ### Análisis de error
+A partir del tweet a continuación, se realizaron modificaciones en los tokens que lo componen, con
+el objetivo de ver las variaciones en las probabilidades que el clasificador asignó en cada caso:
+
+Tweet original:
+    Buen día.... Para delante una nueva semana con fe...!!!! Con fe ... Cuanto tiempo me aguantas con mi forma de ser...
+
+Probabilidades iniciales:
+    ['N'        'NEU'      'NONE'     'P']
+    [0.04173462 0.02647667 0.01663905 0.91514966]
+
+Para disminuir la diferencia de probabilidades de la clase predicha y la correcta, se reemplazaron palabras
+que el clasificador considera "positivas" con palabras con carga "None" (enunciadas en el ejercicio anterior,
+como ser: semana, alguna). Además, como era de esperar, modificaciones en las stopwords no afectaron a las
+probabilidades, ya que el tokenizer se encarga de filtrarlas.
+
+Tweet modificado:
+    Otro día. Aunque para delante alguna semana con fe. Cuanto tiempo me aguantas con mi forma de ser.
+
+Nuevas probabilidades:
+    
+    | Class weight  | 'N'           | 'NEU'         | 'NONE'        | 'P'        |
+    |---------------|---------------|---------------|---------------|------------|
+    | None          | 0.3165522     | 0.1470144     | 0.17219573    | 0.36423766 |
+    | Balanced      | 0.21668909    | 0.16951191    | 0.25684346    | 0.35695554 |
+
+Como se puede ver, la probabilidad (sin class\_weight) de None aumentó, pero no lo suficiente.
+Se vió que incluso una frase con puras palabras con mucho peso para "None", era clasificado como "None" con apenas
+un 60% de posibilidades, y una frase vacía era clasificada con probabilidades muy desparejas.
+Por ello se decidió utilizar class\_weight='balanced' en el clasificador. Con ésto, las probabilidades del string
+vacío pasaron a ser:
+
+    | Class weight  | 'N'           | 'NEU'         | 'NONE'        | 'P'        |
+    |---------------|---------------|---------------|---------------|------------|
+    | None          | 0.36756399    | 0.17290057    | 0.18253403    | 0.27700141 |
+    | Balanced      | 0.29837558    | 0.24831629    | 0.23030293    | 0.22300519 |

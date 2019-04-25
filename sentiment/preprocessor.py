@@ -1,6 +1,6 @@
 import re
-
 from sentiment.consts import URL_TOKEN, LAUGH_TOKEN
+
 
 class Preprocessor():
     def __call__(self, doc):
