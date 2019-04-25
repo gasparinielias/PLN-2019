@@ -148,6 +148,21 @@ vacío pasaron a ser:
 | Balanced      | 0.29837558    | 0.24831629    | 0.23030293    | 0.22300519 |
 
 
+## Ejercicio 6: Evaluación final
+El resultado final medido sobre el conjunto de test para el corpus ES fue:
+
+| Metric        | P      | N      | NEU       | NONE      |
+|---------------|--------|--------|-----------|-----------|
+| Presicion     | 59.34% | 54.76% | 12.58%    | 29.30%    |
+| Recall        | 58.88% | 67.54% | 9.26%     | 16.79%    |
+
+
+| Metric        | ES     |
+|---------------|--------|
+| Accuracy      | 50.66% |
+| Macro-F1      | 38.55% |
+
+
 ## Ejercicio 7: Word embeddings
 Se utilizó FastText para obtener word embeddings de las palabras de los tweets. Por motivos de recursos,
 este ejercicio se realizó utilizando Google Colaboratory:
