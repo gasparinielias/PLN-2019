@@ -12,8 +12,10 @@ Options:
                   maxent: Maximum Entropy (i.e. Logistic Regression)
                   svm: Support Vector Machine
                   mnb: Multinomial Bayes
+  --all         Use develop as training [default: False]
   -h --help     Show this screen.
 """
+import numpy as np
 import pickle
 from docopt import docopt
 
@@ -62,7 +64,8 @@ if __name__ == '__main__':
         else:
             model = models[model_type]()  # baseline
 
-        model.fit(X_all, y_all, train, test, grid_search=True)
+        model.fit(X_all, y_all, train, test,
+                  grid_search=True, refit_all=opts['--all'])
 
         # save model
         f = open(models_output[i].format(opts['-c']), 'wb')
