@@ -1,3 +1,6 @@
+*_Aclaración: todos los resultados provienen de evaluar sobre el corpus de development,
+  a excepción del ejercicio 6 (evaluado con test)_*
+
 ## Ejercicio 1
 El archivo stats.py devolvió los siguientes datos:
 
@@ -170,7 +173,9 @@ El resultado final medido sobre el conjunto de test para el corpus ES fue:
 ## Ejercicio 7: Word embeddings
 Se utilizó FastText para obtener word embeddings de las palabras de los tweets. Por motivos de recursos,
 este ejercicio se realizó utilizando Google Colaboratory:
-[Embeddings colab](https://colab.research.google.com/drive/1TU3o5J_AMzBK_vptIPyF9_6CE1v0D_Aj)
+[Embeddings colab](https://colab.research.google.com/drive/1TU3o5J_AMzBK_vptIPyF9_6CE1v0D_Aj).
+El nuevo conjunto de features fue el resultado de concatenar las obtenidas con el BoW y
+la media (numpy.average) de las words embeddings de las palabras del tweet.
 
 
 ## Ejercicio 8: Lexicón de sentimientos
