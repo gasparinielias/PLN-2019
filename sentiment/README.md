@@ -72,14 +72,14 @@ mejores que los existentes por defecto. Tanto para SVM como para LinearRegressio
 parámetros "C" y "penalty".
 Los mejores parámetros encontrados, con sus respectivos resultados, fueron:
 
-| Corpus-clf | penalty | C   | Accuracy | Macro F1  |
-|------------|---------|-----|----------|-----------|
-| PE-svm     | l1      | 0.1 | 49.60%   | 37.25%    |
-| PE-maxent  | l2      | 0.1 | 47.40%   | 34.47%    |
-| ES-svm     | l1      | 0.1 | 55.34%   | 46.69%    |
-| ES-maxent  | l2      | 0.2 | 55.53%   | 37.07%    |
-| CR-svm     | l1      | 0.5 | 48.33%   | 38.56%    |
-| CR-maxent  | l2      | 0.3 | 51.00%   | 38.83%    |
+| Corpus-clf | penalty | C      | Accuracy | Macro F1  |
+|------------|---------|-------:|----------|-----------|
+| PE-svm     | l1      | 0.1    | 49.60%   | 37.25%    |
+| PE-maxent  | l2      | 1.0    | 47.40%   | 36.45%    |
+| ES-svm     | l1      | 0.1    | 55.14%   | 46.52%    |
+| ES-maxent  | l2      | 100.0  | 52.77%   | 42.68%    |
+| CR-svm     | l1      | 0.1    | 44.00%   | 40.65%    |
+| CR-maxent  | l2      | 1.0    | 53.00%   | 47.90%    |
 
 
 ## Ejercicio 4: Inspección de modelos
@@ -129,16 +129,17 @@ probabilidades, ya que el tokenizer se encarga de filtrarlas.
 Tweet modificado:
     Otro día. Aunque para delante alguna semana con fe. Cuanto tiempo me aguantas con mi forma de ser.
 
-Nuevas probabilidades:
-    
+Nuevas probabilidades para el tweet modificado (con y sin class\_weight balanced):
+
 | Class weight  | 'N'           | 'NEU'         | 'NONE'        | 'P'        |
 |---------------|---------------|---------------|---------------|------------|
+|_Previous prob_| 0.04173462    | 0.02647667    | 0.01663905    | 0.91514966 |
 | None          | 0.3165522     | 0.1470144     | 0.17219573    | 0.36423766 |
 | Balanced      | 0.21668909    | 0.16951191    | 0.25684346    | 0.35695554 |
 
 Como se puede ver, la probabilidad (sin class\_weight) de None aumentó, pero no lo suficiente.
-Se vió que incluso una frase con puras palabras con mucho peso para "None", era clasificado como "None" con apenas
-un 60% de posibilidades, y una frase vacía era clasificada con probabilidades muy desparejas.
+Se vió que incluso una frase únicamente compuesta de palabras con mucho peso para "None", era clasificado como "None" con
+apenas un 60% de posibilidades, y una frase vacía era clasificada con probabilidades muy desparejas.
 Por ello se decidió utilizar class\_weight='balanced' en el clasificador. Con ésto, las probabilidades del string
 vacío pasaron a ser:
 
@@ -151,22 +152,25 @@ vacío pasaron a ser:
 ## Ejercicio 6: Evaluación final
 El resultado final medido sobre el conjunto de test para el corpus ES fue:
 
-| Metric        | P      | N      | NEU       | NONE      |
-|---------------|--------|--------|-----------|-----------|
-| Presicion     | 59.34% | 54.76% | 12.58%    | 29.30%    |
-| Recall        | 58.88% | 67.54% | 9.26%     | 16.79%    |
+| Classifier    | Metric        | P      | N      | NEU       | NONE      |
+|---------------|---------------|--------|--------|-----------|-----------|
+| Maxent        | Presicion     | 56.09% | 56.58% | 13.33%    | 28.57%    |
+| Maxent        | Recall        | 55.92% | 62.19% | 15.74%    | 16.79%    |
+| SVM           | Presicion     | 60.10% | 50.73% | 100%      | 64.71%    |
+| SVM           | Recall        | 54.21% | 86.18% | 0%        |  4.01%    |
 
-
-| Metric        | ES     |
-|---------------|--------|
-| Accuracy      | 50.66% |
-| Macro-F1      | 38.55% |
+| Classifier    | Metric        | ES     |
+|---------------|---------------|--------|
+| Maxent        | Accuracy      | 48.24% |
+| Maxent        | Macro-F1      | 38.15% |
+| SVM           | Accuracy      | 53.71% |
+| SVM           | Macro-F1      | 47.37% |
 
 
 ## Ejercicio 7: Word embeddings
 Se utilizó FastText para obtener word embeddings de las palabras de los tweets. Por motivos de recursos,
 este ejercicio se realizó utilizando Google Colaboratory:
-    `https://colab.research.google.com/drive/1TU3o5J_AMzBK_vptIPyF9_6CE1v0D_Aj`
+[Embeddings colab](https://colab.research.google.com/drive/1TU3o5J_AMzBK_vptIPyF9_6CE1v0D_Aj)
 
 
 ## Ejercicio 8: Lexicón de sentimientos
