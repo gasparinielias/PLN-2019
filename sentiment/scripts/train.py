@@ -13,6 +13,7 @@ Options:
                   svm: Support Vector Machine
                   mnb: Multinomial Bayes
   --all         Use develop as training [default: False]
+  -g            Use grid search to find optimal params [default: False]
   -h --help     Show this screen.
 """
 import numpy as np
@@ -65,7 +66,7 @@ if __name__ == '__main__':
             model = models[model_type]()  # baseline
 
         model.fit(X_all, y_all, train, test,
-                  grid_search=True, refit_all=opts['--all'])
+                  grid_search=opts['-g'], refit_all=opts['--all'])
 
         # save model
         f = open(models_output[i].format(opts['-c']), 'wb')

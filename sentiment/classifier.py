@@ -3,10 +3,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import ParameterGrid, fit_grid_point
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 
-from sentiment import tokenizer, preprocessor
+from sentiment import tokenizer, preprocessor, word_polarities
 from sentiment.settings import GRID_PARAMS
 
 
@@ -35,11 +36,17 @@ class SentimentClassifier():
         self._clf = clf
 
         self._pipeline = Pipeline([
-            ('vect', CountVectorizer(
-                preprocessor=preprocess,
-                tokenizer=tokenize,
-                binary=True,
-            )),
+            ('vect', FeatureUnion([
+                ('bow', CountVectorizer(
+                    preprocessor=preprocess,
+                    tokenizer=tokenize,
+                    binary=True,
+                )),
+                ('polarities', Pipeline([
+                    ('count', word_polarities.PolarizedWordsCounter()),
+                    ('scale', StandardScaler())
+                ]))
+            ])),
             ('clf', classifiers[self._clf]()),
         ])
 

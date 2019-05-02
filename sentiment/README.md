@@ -167,3 +167,12 @@ El resultado final medido sobre el conjunto de test para el corpus ES fue:
 Se utilizó FastText para obtener word embeddings de las palabras de los tweets. Por motivos de recursos,
 este ejercicio se realizó utilizando Google Colaboratory:
     `https://colab.research.google.com/drive/1TU3o5J_AMzBK_vptIPyF9_6CE1v0D_Aj`
+
+
+## Ejercicio 8: Lexicón de sentimientos
+Se implementó una nueva clase para contar cantidad de palabras con carga positiva, neutra y negativa en los tweets.
+Estos números, escalados con StandardScaler, fueron agregados como features al pipeline ya existente.
+El lexicón utilizado fue [Spanish DAL](http://habla.dc.uba.ar/gravano/sdal.php?lang=esp). Dado que el mismo provee
+un valor de "agrado" por cada palabra, en una escala del 1.0 al 3.0, los tokens de los tweets fueron clasificados
+con polaridad de acuerdo a dos thresholds (low y high). Los mismos pueden buscarse con grid-search, como el resto
+de los parámetros de los clasificadores.
