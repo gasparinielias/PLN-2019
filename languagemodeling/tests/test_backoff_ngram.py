@@ -222,9 +222,9 @@ class TestBackoffNGram(TestCase):
 
         tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
         prev_tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '<s>'}
-        prevs = [['<s>', '<s>']] + \
-            [['<s>', t] for t in prev_tokens] + \
-            [[t1, t2] for t1 in prev_tokens for t2 in prev_tokens]
+        prevs = [('<s>', '<s>')] + \
+            [('<s>', t) for t in prev_tokens] + \
+            [(t1, t2) for t1 in prev_tokens for t2 in prev_tokens]
 
         for model in models:
             for prev in prevs:
