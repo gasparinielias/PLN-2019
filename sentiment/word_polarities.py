@@ -1,24 +1,27 @@
 import csv
-from sklearn.feature_extraction.text import CountVectorizer
+import re
 
 from sentiment.consts import LEXICON_PATH
-
-
-_tokenize = CountVectorizer().build_tokenizer()
 
 
 class PolarizedWordsCounter():
     def __init__(self, thresholds=(1.66, 2.33)):
         self._thresh = thresholds
         self._load_polarities()
+        self.token_pattern = r"(?u)\b\w\w+\b"
 
     def fit(self, X, y):
         return self
 
+    def build_tokenizer(self):
+        token_pattern = re.compile(self.token_pattern)
+        return lambda doc: token_pattern.findall(doc)
+
     def transform(self, X):
         X_t = []  # p, neu, n
+        tokenize = self.build_tokenizer()
         for sent in X:
-            classified_tokens = self.classify(_tokenize(sent))
+            classified_tokens = self.classify(tokenize(sent))
             pol_count = [
                 len(classified_tokens['neg']),
                 len(classified_tokens['neu']),
