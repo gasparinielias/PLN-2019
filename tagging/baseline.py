@@ -38,7 +38,12 @@ class BaselineTagger:
         tagged_sents -- training sentences, each one being a list of pairs.
         default_tag -- tag for unknown words.
         """
-        # WORK HERE!!
+        self._default_tag = default_tag
+
+        self._word_tags = word_tags = defaultdict(lambda: defaultdict(int))
+        for sent in tagged_sents:
+            for word, tag in sent:
+                word_tags[word][tag] += 1
 
     def tag(self, sent):
         """Tag a sentence.
@@ -52,11 +57,12 @@ class BaselineTagger:
 
         w -- the word.
         """
-        # WORK HERE!!
+        tags = self._word_tags.get(w, {self._default_tag: 0})
+        return(max(tags, key=lambda t: tags[t]))
 
     def unknown(self, w):
         """Check if a word is unknown for the model.
 
         w -- the word.
         """
-        # WORK HERE!!
+        return w not in self._word_tags
