@@ -7,13 +7,14 @@ Usage:
 Options:
   -h --help     Show this screen.
 """
-from docopt import docopt
 from collections import defaultdict
+from docopt import docopt
+from itertools import chain
 
 from tagging.ancora import SimpleAncoraCorpusReader
 
 
-class POSStats:
+class POSStats():
     """Several statistics for a POS tagged corpus.
     """
 
@@ -21,51 +22,72 @@ class POSStats:
         """
         tagged_sents -- corpus (list/iterable/generator of tagged sentences)
         """
-        # WORK HERE!!
-        # COLLECT REQUIRED STATISTICS INTO DICTIONARIES.
+        self.sents = list(tagged_sents)
+        self._sent_count = len(self.sents)
+        self._token_count = sum(len(sent) for sent in self.sents)
+
+        word_tag_tuples = list(chain(*(sent for sent in self.sents)))
+        word_types, tags = (set(x) for x in zip(*word_tag_tuples))
+
+        self._word_types = word_types
+        self._tags = tags
+
+        tag_word_dict = defaultdict(set)
+        self._tcount = tcount = defaultdict(lambda: defaultdict(int))
+        self._word_freq = word_freq = defaultdict(int)
+        self._tag_freq = tag_freq = defaultdict(int)
+        for word, tag in word_tag_tuples:
+            tag_word_dict[word].add(tag)
+            tcount[tag][word] += 1
+            word_freq[word] += 1
+            tag_freq[tag] += 1
+
+        self._word_ambiguity = word_ambiguity = defaultdict(list)
+        for word in self._word_types:
+            word_ambiguity[len(tag_word_dict[word])].append(word)
 
     def sent_count(self):
         """Total number of sentences."""
-        # WORK HERE!!
+        return self._sent_count
 
     def token_count(self):
         """Total number of tokens."""
-        # WORK HERE!!
+        return self._token_count
 
     def words(self):
         """Vocabulary (set of word types)."""
-        # WORK HERE!!
+        return self._word_types
 
     def word_count(self):
         """Vocabulary size."""
-        # WORK HERE!!
+        return len(self._word_types)
 
     def word_freq(self, w):
         """Frequency of word w."""
-        # WORK HERE!!
+        return self._word_freq[w]
 
     def unambiguous_words(self):
         """List of words with only one observed POS tag."""
-        # WORK HERE!!
+        return self._word_ambiguity.get(1, ())
 
     def ambiguous_words(self, n):
         """List of words with n different observed POS tags.
 
         n -- number of tags.
         """
-        # WORK HERE!!
+        return self._word_ambiguity.get(n, ())
 
     def tags(self):
         """POS Tagset."""
-        # WORK HERE!!
+        return self._tags
 
     def tag_count(self):
         """POS tagset size."""
-        # WORK HERE!!
+        return len(self._tags)
 
     def tag_freq(self, t):
         """Frequency of tag t."""
-        # WORK HERE!!
+        return self._tag_freq[t]
 
     def tag_word_dict(self, t):
         """Dictionary of words and their counts for tag t."""
@@ -76,7 +98,7 @@ if __name__ == '__main__':
     opts = docopt(__doc__)
 
     # load the data
-    corpus = SimpleAncoraCorpusReader('ancora/ancora-3.0.1es/')
+    corpus = SimpleAncoraCorpusReader('corpus/ancora-3.0.1es/')
     sents = corpus.tagged_sents()
 
     # compute the statistics
