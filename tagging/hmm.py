@@ -72,7 +72,7 @@ class HMM():
 
         return p
 
-    def tag_log_prob(self, y):
+    def tag_log_prob(self, y, add_end_token=True):
         """
         Log-probability of a tagging.
 
@@ -80,7 +80,7 @@ class HMM():
         """
         p = 0
         n = self._n
-        y = (START_TOKEN,) * (n - 1) + tuple(y) + (END_TOKEN,)
+        y = (START_TOKEN,) * (n - 1) + tuple(y) + (END_TOKEN,) * add_end_token
         for i in range(len(y) - self._n + 1):
             tag = y[i + n - 1]
             prev_tags = y[i:i + n - 1]
@@ -128,3 +128,32 @@ class ViterbiTagger():
 
         sent -- the sentence.
         """
+        n = self._model._n
+        self.init_mat(sent[:n])
+
+    def init_mat(self, sent_prefix):
+        tag_ngrams = self.all_tag_ngrams(min(self._model._n - 1, len(sent_prefix)))
+
+        first_col = {}
+        for ngram in tag_ngrams:
+            first_col[ngram] = self._model.tag_log_prob(ngram, add_end_token=False)
+            for i, tag in enumerate(ngram):
+                p = self._model.out_prob(sent_prefix[i], tag)
+                if p != 0:
+                    first_col[ngram] += math.log2(p)
+                else:
+                    first_col[ngram] = -math.inf
+                    break
+        self.mat = [first_col, {}]
+
+    def all_tag_ngrams(self, max_length):
+        if max_length == 0:
+            return [()]
+
+        res = []
+        tags = list(self._model.tagset())
+        for tag in tags:
+            res.extend(prev + (tag,) for prev in
+                       self.all_tag_ngrams(max_length - 1))
+
+        return res
