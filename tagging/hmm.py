@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 
 from tagging.consts import START_TOKEN, END_TOKEN
 
@@ -12,10 +13,13 @@ class HMM():
         trans -- transition probabilities dictionary.
         out -- output probabilities dictionary.
         """
+        assert n > 0
+
         self._n = n
         self._tagset = tagset
         self._trans = trans
         self._out = out
+        self._tagger = None
 
     def tagset(self):
         """Returns the set of tags.
@@ -112,7 +116,99 @@ class HMM():
 
         sent -- the sentence.
         """
-        return []
+        if not self._tagger:
+            self._tagger = ViterbiTagger(self)
+
+        return self._tagger.tag(sent)
+
+
+class MLHMM(HMM):
+
+    def __init__(self, n, tagged_sents, addone=True):
+        """
+        n -- order of the model.
+        tagged_sents -- training sentences, each one being a list of pairs.
+        addone -- whether to use addone smoothing (default: True).
+        """
+        self._n = n
+        self._addone = addone
+
+        self._tagset, self._vocab = self.compute_tagset_vocabulary(tagged_sents)
+
+        self._out_counts, self._tcounts = self.compute_counts(tagged_sents)
+
+    def compute_counts(self, tagged_sents):
+        n = self._n
+        ngram_counts = defaultdict(int)
+        out_counts = defaultdict(lambda: defaultdict(int))
+        for tsent in tagged_sents:
+            for word, tag in tsent:
+                out_counts[tag][word] += 1
+
+            _, tags = zip(*tsent)
+            tags = (START_TOKEN,) * (n - 1) + tuple(tags) + (END_TOKEN,)
+
+            for i in range(len(tags) - n + 1):
+                ngram = tags[i:i + n]
+                ngram_counts[ngram] += 1
+                ngram_counts[ngram[:-1]] += 1
+
+        return dict(out_counts), dict(ngram_counts)
+
+    def compute_tagset_vocabulary(self, tagged_sents):
+        tagset = set()
+        vocab = set()
+        for tsent in tagged_sents:
+            sent, tags = zip(*tsent)
+            tagset.update(tags)
+            vocab.update(sent)
+        return tagset, vocab
+
+    def trans_prob(self, tag, prev_tags=None):
+        assert prev_tags is not None or self._n > 0
+
+        prev_tags = prev_tags or ()
+        addone = self._addone
+
+        p = (self.tcount(prev_tags + (tag,)) + addone) / \
+            (self.tcount(prev_tags) + self.tagset_size() * addone)
+
+        return p
+
+    def out_prob(self, word, tag):
+        addone = self._addone
+        p = (self.wcount(word, tag) + addone) / \
+            (self.tag_count(tag) + self.vocab_size() * addone)
+
+        return p
+
+    def tcount(self, tokens):
+        """Count for an n-gram or (n-1)-gram of tags.
+
+        tokens -- the n-gram or (n-1)-gram tuple of tags.
+        """
+        return self._tcounts.get(tokens, 0)
+
+    def tag_count(self, tag):
+        """Times of occurence of "tag"
+        """
+        return sum(self._out_counts.get(tag, {}).values())
+
+    def wcount(self, word, tag):
+        return self._out_counts.get(tag, {}).get(word, 0)
+
+    def vocab_size(self):
+        return len(self._vocab)
+
+    def tagset_size(self):
+        return len(self._tagset)
+
+    def unknown(self, w):
+        """Check if a word is unknown for the model.
+
+        w -- the word.
+        """
+        return w not in self._vocab
 
 
 class ViterbiTagger():
@@ -123,6 +219,7 @@ class ViterbiTagger():
         """
         self._model = hmm
         self.tagset = hmm.tagset()
+        self._pi = None
 
     def tag(self, sent):
         """Returns the most probable tagging for a sentence.
