@@ -1,2 +1,2 @@
-START_TOKEN = '<s>'
-END_TOKEN = '</s>'
+START_TAG = '<s>'
+END_TAG = '</s>'

@@ -1,7 +1,7 @@
 import math
 from collections import defaultdict
 
-from tagging.consts import START_TOKEN, END_TOKEN
+from tagging.consts import START_TAG, END_TAG
 
 
 class HMM():
@@ -37,6 +37,13 @@ class HMM():
 
         return self._trans.get(prev_tags, {}).get(tag, 0)
 
+    def trans_log_prob(self, tag, prev_tags=None):
+        t_prob = self.trans_prob(tag, prev_tags)
+        if t_prob > 0:
+            return math.log2(t_prob)
+
+        return -math.inf
+
     def out_prob(self, word, tag):
         """Probability of a word given a tag.
 
@@ -44,6 +51,13 @@ class HMM():
         tag -- the tag.
         """
         return self._out.get(tag, {}).get(word, 0)
+
+    def out_log_prob(self, word, tag):
+        out_prob = self.out_prob(word, tag)
+        if out_prob > 0:
+            return math.log2(out_prob)
+
+        return -math.inf
 
     def tag_prob(self, y):
         """
@@ -54,7 +68,7 @@ class HMM():
         """
         p = 1
         n = self._n
-        y = (START_TOKEN,) * (n - 1) + tuple(y) + (END_TOKEN,)
+        y = (START_TAG,) * (n - 1) + tuple(y) + (END_TAG,)
         for i in range(len(y) - self._n + 1):
             tag = y[i + n - 1]
             prev_tags = y[i:i + n - 1]
@@ -84,7 +98,7 @@ class HMM():
         """
         p = 0
         n = self._n
-        y = (START_TOKEN,) * (n - 1) + tuple(y) + (END_TOKEN,) * add_end_token
+        y = (START_TAG,) * (n - 1) + tuple(y) + (END_TAG,) * add_end_token
         for i in range(len(y) - self._n + 1):
             tag = y[i + n - 1]
             prev_tags = y[i:i + n - 1]
@@ -146,7 +160,7 @@ class MLHMM(HMM):
                 out_counts[tag][word] += 1
 
             _, tags = zip(*tsent)
-            tags = (START_TOKEN,) * (n - 1) + tuple(tags) + (END_TOKEN,)
+            tags = (START_TAG,) * (n - 1) + tuple(tags) + (END_TAG,)
 
             for i in range(len(tags) - n + 1):
                 ngram = tags[i:i + n]
@@ -222,76 +236,39 @@ class ViterbiTagger():
         self._pi = None
 
     def tag(self, sent):
-        """Returns the most probable tagging for a sentence.
+        self.init_pi()
+        for i in range(0, len(sent)):
+            self.fill_column(i + 1, sent[i])
 
-        sent -- the sentence.
-        """
-        n = self._model._n
-        self.init_pi(sent[:n - 1])
-        i = 0
-        while i < len(sent) - n + 1:
-            self.fill_column(i, sent[i + n - 1])
-            i += 1
-
+        path = None
         max_p = -math.inf
-        path = ()
-        for ngram in self._pi[i % 2]:
-            prev_tags = ngram
-            p = self._pi[i % 2][prev_tags][0] + \
-                self._model.trans_prob(END_TOKEN, prev_tags)
-
-            if p > max_p:
-                max_p = p
-                path = self._pi[i % 2][prev_tags][1]
+        last_col = self._pi[len(sent)]
+        for prev_tags, (prob, tokens) in last_col.items():
+            new_p = prob + self._model.trans_log_prob(END_TAG, prev_tags)
+            if new_p > max_p:
+                max_p = new_p
+                path = tokens
 
         return path
 
-    def init_pi(self, sent_prefix):
-        tag_ngrams = self.all_tag_ngrams(min(self._model._n - 1, len(sent_prefix)))
+    def init_pi(self):
+        n = self._model._n
+        self._pi = {
+            0: {
+                (START_TAG,) * (n - 1): (math.log2(1.0), [])
+            }
+        }
 
-        first_col = {}
-        for ngram in tag_ngrams:
-            ngram_prob = self._model.tag_log_prob(ngram, add_end_token=False)
-            for i, tag in enumerate(ngram):
-                p = self._model.out_prob(sent_prefix[i], tag)
-                if p != 0:
-                    ngram_prob += math.log2(p)
-                else:
-                    ngram_prob = -math.inf
-                    break
-            first_col[ngram] = (ngram_prob, ngram)
-        self._pi = [first_col, {}]
-
-    def fill_column(self, i, out_token):
+    def fill_column(self, i, token):
         tagset = self.tagset
-        for ngram in self._pi[i % 2]:
-            max_p = -math.inf
-            max_prev_tags = ()
-            new_tag = ngram[-1]
+        self._pi[i] = col = {}
+        prev_col = self._pi[i - 1]
+        for prev_tags in prev_col:
             for tag in tagset:
-                prev_tags = (tag,) + ngram[:-1]
-                if self._pi[i % 2][prev_tags][0] == -math.inf:
-                    continue
+                p = prev_col[prev_tags][0] + \
+                    self._model.trans_log_prob(tag, prev_tags) + \
+                    self._model.out_log_prob(token, tag)
 
-                trans_p = self._model.trans_prob(new_tag, prev_tags)
-                out_p = self._model.out_prob(out_token, new_tag)
-                if trans_p != 0 and out_p != 0:
-                    p = math.log2(trans_p) + math.log2(out_p) + \
-                        self._pi[i % 2][prev_tags][0]
-                    if p > max_p:
-                        max_p = max(p, max_p)
-                        max_prev_tags = self._pi[i % 2][prev_tags][1]
-
-            self._pi[(i + 1) % 2][ngram] = (max_p, max_prev_tags + (new_tag,))
-
-    def all_tag_ngrams(self, max_length):
-        if max_length == 0:
-            return [()]
-
-        res = []
-        tags = list(self.tagset)
-        for tag in tags:
-            res.extend(prev + (tag,) for prev in
-                       self.all_tag_ngrams(max_length - 1))
-
-        return res
+                if p != -math.inf:
+                    new_tags = prev_tags[1:] + (tag,)
+                    col[new_tags] = (p, prev_col[prev_tags][1] + [tag])
