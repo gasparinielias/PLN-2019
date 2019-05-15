@@ -16,6 +16,7 @@ import pickle
 
 from tagging.ancora import SimpleAncoraCorpusReader
 from tagging.baseline import BaselineTagger, BadBaselineTagger
+from tagging.consts import ANCORA_CORPUS_PATH
 
 
 models = {
@@ -29,7 +30,7 @@ if __name__ == '__main__':
 
     # load the data
     files = 'CESS-CAST-(A|AA|P)/.*\.tbf\.xml'
-    corpus = SimpleAncoraCorpusReader('ancora/ancora-3.0.1es/', files)
+    corpus = SimpleAncoraCorpusReader(ANCORA_CORPUS_PATH, files)
     sents = corpus.tagged_sents()
 
     # train the model

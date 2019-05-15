@@ -40,10 +40,12 @@ class BaselineTagger:
         """
         self._default_tag = default_tag
 
-        self._word_tags = word_tags = defaultdict(lambda: defaultdict(int))
+        word_tags = defaultdict(lambda: defaultdict(int))
         for sent in tagged_sents:
             for word, tag in sent:
                 word_tags[word][tag] += 1
+
+        self._word_tags = dict(word_tags)
 
     def tag(self, sent):
         """Tag a sentence.
