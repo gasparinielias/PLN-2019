@@ -3,6 +3,8 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
 
+from tagging.consts import START_TAG, END_TAG
+
 
 classifiers = {
     'lr': LogisticRegression,
@@ -10,14 +12,37 @@ classifiers = {
 }
 
 
+def add_keys(d, word, prefix):
+    if word == START_TAG or word == END_TAG:
+        fun = (str.lower,)
+    else:
+        fun = (str.lower, str.isupper, str.istitle, str.isdigit)
+
+    keys = [
+        (f, "{}{}".format(prefix, key))
+        for f, key in zip(fun, 'w wu wt wd'.split())
+    ]
+
+    d.update({ key: f(word) for f, key in keys })
+
 def feature_dict(sent, i):
     """Feature dictionary for a given sentence and position.
 
     sent -- the sentence.
     i -- the position.
     """
-    # WORK HERE!!
-    return {}
+    assert 0 <= i and i < len(sent)
+
+    cword = sent[i]
+    pword = sent[i - 1] if i != 0 else START_TAG
+    nword = sent[i + 1] if i != len(sent) - 1 else END_TAG
+
+    fdict = {}
+    add_keys(fdict, cword, '')
+    add_keys(fdict, pword, 'p')
+    add_keys(fdict, nword, 'n')
+
+    return fdict
 
 
 class ClassifierTagger:
@@ -28,7 +53,7 @@ class ClassifierTagger:
         """
         clf -- classifying model, one of 'svm', 'lr' (default: 'lr').
         """
-        # WORK HERE!!
+        self._clf = clf
 
     def fit(self, tagged_sents):
         """
