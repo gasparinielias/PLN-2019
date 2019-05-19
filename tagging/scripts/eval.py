@@ -9,52 +9,43 @@ Options:
   -i <file>     Tagging model file.
   -h --help     Show this screen.
 """
-from docopt import docopt
+import matplotlib.pyplot as plt
+import numpy as np
 import pickle
 import sys
+
+from docopt import docopt
 from collections import defaultdict
+from sklearn.metrics import confusion_matrix
+from sklearn.utils.multiclass import unique_labels
 
 from tagging.ancora import SimpleAncoraCorpusReader
 from tagging.consts import ANCORA_CORPUS_PATH
 
 
-def print_results(model, sents):
-    pred_true_tags = defaultdict(lambda: defaultdict(int))
-    true_tags = defaultdict(int)
-    unk_words = 0
-    total_unk_words = 0
-    known_words = 0
-    total_known_words = 0
+def print_results(model, tagged_sents, show_confusion_matrix):
+    pred, ground_truth = [], []
+    unknown = []
+    for tsent in tagged_sents:
+        sent, gt = zip(*tsent)
+        pred += model.tag(sent)
+        ground_truth += gt
+        unknown += map(model.unknown, sent)
 
-    for sent in sents:
-        pred = model.tag(sent)
-        for i, pred_tag in enumerate(pred):
-            word, tag = sent[i]
-            pred_true_tags[pred_tag][tag] += 1
-            true_tags[tag] += 1
-            if model.unknown(word):
-                total_unk_words += 1
-                if pred_tag == tag:
-                    unk_words += 1
-            else:
-                total_known_words += 1
-                if pred_tag == tag:
-                    known_words += 1
+    pred = np.array(pred)
+    ground_truth = np.array(ground_truth)
+    unknown = np.array(unknown)
+    known = np.invert(unknown)
 
-    tp = 0
-    for tag in true_tags:
-        tp += pred_true_tags[tag][tag]
+    cm = confusion_matrix(ground_truth, pred)
+    accuracy = cm.diagonal().sum() / cm.sum() * 100
+    print("Accuracy: {:2.2f}%".format(accuracy))
 
-    acc = tp / sum(true_tags.values()) * 100
+    known_acc = sum(pred[known] == ground_truth[known]) / sum(known) * 100
+    print("Accuracy for known words: {:2.2f}%".format(known_acc))
 
-    print("Accuracy: {:2.2f}%".format(acc))
-    if total_known_words:
-        print("Accuracy for known words: {:2.2f}%".format(
-            known_words / total_known_words * 100))
-
-    if total_unk_words:
-        print("Accuracy for unknown words: {:2.2f}%".format(
-            unk_words / total_unk_words * 100))
+    unknown_acc = sum(pred[unknown] == ground_truth[unknown]) / sum(unknown) * 100
+    print("Accuracy for unknown words: {:2.2f}%".format(unknown_acc))
 
 
 if __name__ == '__main__':
@@ -72,4 +63,4 @@ if __name__ == '__main__':
     sents = list(corpus.tagged_sents())
 
     # tag and evaluate
-    print_results(model, sents)
+    print_results(model, sents, opts['-c'])

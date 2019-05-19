@@ -8,4 +8,5 @@ scipy
 scikit-learn
 jupyter
 jupyterlab
+matplotlib
 -e .  # install our code in editing mode
