@@ -190,11 +190,10 @@ class MLHMM(HMM):
         return p
 
     def out_prob(self, word, tag):
-        addone = self._addone
-        p = (self.wcount(word, tag) + addone) / \
-            (self.tag_count(tag) + self.vocab_size() * addone)
+        if self.unknown(word):
+            return 1 / self.vocab_size()
 
-        return p
+        return self.wcount(word, tag) / self.tag_count(tag)
 
     def tcount(self, tokens):
         """Count for an n-gram or (n-1)-gram of tags.
