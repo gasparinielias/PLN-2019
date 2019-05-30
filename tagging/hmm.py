@@ -146,7 +146,9 @@ class MLHMM(HMM):
         """
         self._n = n
         self._addone = addone
+        self._tagger = None
 
+        tagged_sents = list(tagged_sents)
         self._tagset, self._vocab = self.compute_tagset_vocabulary(tagged_sents)
 
         self._out_counts, self._tcounts = self.compute_counts(tagged_sents)
@@ -156,10 +158,14 @@ class MLHMM(HMM):
         ngram_counts = defaultdict(int)
         out_counts = defaultdict(lambda: defaultdict(int))
         for tsent in tagged_sents:
+            if not tsent:
+                continue
+
+            tags = []
             for word, tag in tsent:
                 out_counts[tag][word] += 1
+                tags.append(tag)
 
-            _, tags = zip(*tsent)
             tags = (START_TAG,) * (n - 1) + tuple(tags) + (END_TAG,)
 
             for i in range(len(tags) - n + 1):
@@ -173,6 +179,8 @@ class MLHMM(HMM):
         tagset = set()
         vocab = set()
         for tsent in tagged_sents:
+            if not tsent:
+                continue
             sent, tags = zip(*tsent)
             tagset.update(tags)
             vocab.update(sent)
@@ -192,6 +200,9 @@ class MLHMM(HMM):
     def out_prob(self, word, tag):
         if self.unknown(word):
             return 1 / self.vocab_size()
+
+        if not self.tag_count(tag):
+            return 0
 
         return self.wcount(word, tag) / self.tag_count(tag)
 
@@ -236,19 +247,19 @@ class ViterbiTagger():
 
     def tag(self, sent):
         self.init_pi()
-        for i in range(0, len(sent)):
-            self.fill_column(i + 1, sent[i])
+        for i, token in enumerate(sent):
+            self.fill_column(i + 1, token)
 
-        path = None
+        tagging = None
         max_p = -math.inf
         last_col = self._pi[len(sent)]
         for prev_tags, (prob, tokens) in last_col.items():
             new_p = prob + self._model.trans_log_prob(END_TAG, prev_tags)
-            if new_p > max_p:
+            if tagging is None or new_p > max_p:
                 max_p = new_p
-                path = tokens
+                tagging = tokens
 
-        return path
+        return tagging
 
     def init_pi(self):
         n = self._model._n
@@ -259,15 +270,15 @@ class ViterbiTagger():
         }
 
     def fill_column(self, i, token):
-        tagset = self.tagset
         self._pi[i] = col = {}
-        prev_col = self._pi[i - 1]
-        for prev_tags in prev_col:
-            for tag in tagset:
-                p = prev_col[prev_tags][0] + \
+        for prev_tags, (prob, tagging) in self._pi[i - 1].items():
+            for tag in self.tagset:
+                new_prob = prob + \
                     self._model.trans_log_prob(tag, prev_tags) + \
                     self._model.out_log_prob(token, tag)
 
-                if p != -math.inf:
-                    new_tags = prev_tags[1:] + (tag,)
-                    col[new_tags] = (p, prev_col[prev_tags][1] + [tag])
+                if new_prob == -math.inf:
+                    continue
+                new_tags = (prev_tags + (tag,))[1:]
+                if new_tags not in col or col[new_tags][0] < new_prob:
+                    col[new_tags] = (new_prob, tagging + [tag])
