@@ -1,10 +1,11 @@
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 
 from tagging.consts import START_TOKEN, END_TOKEN
+from tagging.fasttext import FasttextDictVectorizer
 
 
 classifiers = {
@@ -47,25 +48,6 @@ def feature_dict(sent, i):
     return fdict
 
 
-class ThreeWordsVectorizer():
-    
-    def __init__(self):
-        self.dv = DictVectorizer()
-    
-    def fit(self, X, y):
-        Xt = []
-        for sent, i in X:
-            Xt.append(feature_dict(sent, i))
-        self.dv.fit(Xt)
-        return self
-
-    def transform(self, X):
-        Xt = []
-        for sent, i in X:
-            Xt.append(feature_dict(sent, i))
-        return self.dv.transform(Xt)
-
-
 class ClassifierTagger():
     """Simple and fast classifier based tagger.
     """
@@ -76,7 +58,7 @@ class ClassifierTagger():
         """
         self._clf = clf
         self._pipeline = Pipeline([
-            ('vect', ThreeWordsVectorizer()),
+            ('vect', DictVectorizer()),
             ('clf', classifiers[clf]())
         ])
         self.fit(tagged_sents)
@@ -108,7 +90,7 @@ class ClassifierTagger():
                 continue
             words, tags = zip(*sent)
             for i in range(len(words)):
-                X.append((words, i))
+                X.append(feature_dict(words, i))
             y.extend(tags)
             vocab.update(words)
         return X, y, vocab
@@ -117,7 +99,7 @@ class ClassifierTagger():
         X = []
         for sent in sents:
             for i in range(len(sent)):
-                X.append((sent, i))
+                X.append(feature_dict(sent, i))
         return X
         
     def tag(self, sent):
@@ -134,3 +116,17 @@ class ClassifierTagger():
         w -- the word.
         """
         return w not in self._vocab
+
+
+class EmbeddingsTagger(ClassifierTagger):
+
+    def __init__(self, tagged_sents, clf='lr'):
+        self._clf = clf
+        self._pipeline = Pipeline([
+            ('vect', FeatureUnion([
+                ('twv', DictVectorizer()),
+                ('ft', FasttextDictVectorizer('models/cc.es.300.bin', ['w']))
+            ])),
+            ('clf', classifiers[clf]())
+        ])
+        self.fit(tagged_sents)
