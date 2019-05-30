@@ -2,18 +2,20 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
 
-from tagging.consts import START_TAG, END_TAG
+from tagging.consts import START_TOKEN, END_TOKEN
 
 
 classifiers = {
     'lr': LogisticRegression,
     'svm': LinearSVC,
+    'nb': MultinomialNB
 }
 
 
 def add_keys(d, word, prefix):
-    if word == START_TAG or word == END_TAG:
+    if word == START_TOKEN or word == END_TOKEN:
         fun = (str.lower,)
     else:
         fun = (str.lower, str.isupper, str.istitle, str.isdigit)
@@ -34,8 +36,8 @@ def feature_dict(sent, i):
     assert 0 <= i and i < len(sent)
 
     cword = sent[i]
-    pword = sent[i - 1] if i != 0 else START_TAG
-    nword = sent[i + 1] if i != len(sent) - 1 else END_TAG
+    pword = sent[i - 1] if i != 0 else START_TOKEN
+    nword = sent[i + 1] if i != len(sent) - 1 else END_TOKEN
 
     fdict = {}
     add_keys(fdict, cword, '')
@@ -45,7 +47,26 @@ def feature_dict(sent, i):
     return fdict
 
 
-class ClassifierTagger:
+class ThreeWordsVectorizer():
+    
+    def __init__(self):
+        self.dv = DictVectorizer()
+    
+    def fit(self, X, y):
+        Xt = []
+        for sent, i in X:
+            Xt.append(feature_dict(sent, i))
+        self.dv.fit(Xt)
+        return self
+
+    def transform(self, X):
+        Xt = []
+        for sent, i in X:
+            Xt.append(feature_dict(sent, i))
+        return self.dv.transform(Xt)
+
+
+class ClassifierTagger():
     """Simple and fast classifier based tagger.
     """
 
@@ -54,6 +75,11 @@ class ClassifierTagger:
         clf -- classifying model, one of 'svm', 'lr' (default: 'lr').
         """
         self._clf = clf
+        self._pipeline = Pipeline([
+            ('vect', ThreeWordsVectorizer()),
+            ('clf', classifiers[clf]())
+        ])
+        self.fit(tagged_sents)
 
     def fit(self, tagged_sents):
         """
@@ -61,25 +87,50 @@ class ClassifierTagger:
 
         tagged_sents -- list of sentences, each one being a list of pairs.
         """
-        # WORK HERE!!
+        X, y, vocab = self.prepare_fit(tagged_sents)
+
+        self._vocab = vocab
+        self._pipeline.fit(X, y)
 
     def tag_sents(self, sents):
         """Tag sentences.
 
         sent -- the sentences.
         """
-        # WORK HERE!!
+        X = self.prepare_predict(sents)
+        return self._pipeline.predict(X)
 
+    def prepare_fit(self, tagged_sents):
+        X, y = [], []
+        vocab = set()
+        for sent in tagged_sents:
+            if not len(sent):
+                continue
+            words, tags = zip(*sent)
+            for i in range(len(words)):
+                X.append((words, i))
+            y.extend(tags)
+            vocab.update(words)
+        return X, y, vocab
+
+    def prepare_predict(self, sents):
+        X = []
+        for sent in sents:
+            for i in range(len(sent)):
+                X.append((sent, i))
+        return X
+        
     def tag(self, sent):
         """Tag a sentence.
 
         sent -- the sentence.
         """
-        # WORK HERE!!
+        X = self.prepare_predict([sent])
+        return self._pipeline.predict(X)
 
     def unknown(self, w):
         """Check if a word is unknown for the model.
 
         w -- the word.
         """
-        # WORK HERE!!
+        return w not in self._vocab
