@@ -19,7 +19,7 @@ import pickle
 
 from tagging.ancora import SimpleAncoraCorpusReader
 from tagging.baseline import BaselineTagger, BadBaselineTagger
-from tagging.classifier import ClassifierTagger
+from tagging.classifier import ClassifierTagger, EmbeddingsTagger
 from tagging.consts import ANCORA_CORPUS_PATH
 from tagging.hmm import MLHMM
 
@@ -28,7 +28,8 @@ models = {
     'badbase': BadBaselineTagger,
     'base': BaselineTagger,
     'mlhmm': MLHMM,
-    'twc': ClassifierTagger
+    'twc': ClassifierTagger,
+    'ft': EmbeddingsTagger
 }
 
 
@@ -44,6 +45,10 @@ if __name__ == '__main__':
     model_class = models[opts['-m']]
     if opts['-m'] == 'mlhmm':
         model = model_class(int(opts['-n']), sents)
+    elif opts['-m'] == 'twc':
+        model = model_class(sents, opts['-c'])
+    elif opts['-m'] == 'ft':
+        model = model_class(sents, opts['-c'])
     else:
         model = model_class(sents)
 
