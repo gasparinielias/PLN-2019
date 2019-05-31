@@ -9,10 +9,14 @@ Options:
                   badbase: Bad baseline
                   base: Baseline
                   twc: Three words classifier
+                  ft: EmbeddingsTagger
   -o <file>     Output model file.
   -h --help     Show this screen.
   -n <int>      n-gram (MLHMM only)
-  -c <clf>      Classifier to use
+  -c <clf>      Classifier to use:
+                  lr: Logistic Regression
+                  svm: LinearSVC
+                  mnb: MultinomialNB
 """
 from docopt import docopt
 import pickle
