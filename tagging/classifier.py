@@ -5,13 +5,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 
 from tagging.consts import START_TOKEN, END_TOKEN
-from tagging.fasttext import FasttextDictVectorizer
+#from tagging.fasttext import FasttextDictVectorizer
 
 
 classifiers = {
     'lr': LogisticRegression,
     'svm': LinearSVC,
-    'nb': MultinomialNB
+    'mnb': MultinomialNB
 }
 
 
@@ -125,7 +125,7 @@ class EmbeddingsTagger(ClassifierTagger):
         self._pipeline = Pipeline([
             ('vect', FeatureUnion([
                 ('twv', DictVectorizer()),
-                ('ft', FasttextDictVectorizer('models/cc.es.300.bin', ['w']))
+                ('ft', FasttextDictVectorizer('models/cc.es.300.bin', ['w', 'pw', 'nw']))
             ])),
             ('clf', classifiers[clf]())
         ])

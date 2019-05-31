@@ -9,17 +9,21 @@ Options:
                   badbase: Bad baseline
                   base: Baseline
                   twc: Three words classifier
+                  ft: EmbeddingsTagger
   -o <file>     Output model file.
   -h --help     Show this screen.
   -n <int>      n-gram (MLHMM only)
-  -c <clf>      Classifier to use
+  -c <clf>      Classifier to use:
+                  lr: Logistic Regression
+                  svm: LinearSVC
+                  mnb: MultinomialNB
 """
 from docopt import docopt
 import pickle
 
 from tagging.ancora import SimpleAncoraCorpusReader
 from tagging.baseline import BaselineTagger, BadBaselineTagger
-from tagging.classifier import ClassifierTagger
+from tagging.classifier import ClassifierTagger, EmbeddingsTagger
 from tagging.consts import ANCORA_CORPUS_PATH
 from tagging.hmm import MLHMM
 
@@ -28,7 +32,8 @@ models = {
     'badbase': BadBaselineTagger,
     'base': BaselineTagger,
     'mlhmm': MLHMM,
-    'twc': ClassifierTagger
+    'twc': ClassifierTagger,
+    'ft': EmbeddingsTagger
 }
 
 
@@ -44,6 +49,10 @@ if __name__ == '__main__':
     model_class = models[opts['-m']]
     if opts['-m'] == 'mlhmm':
         model = model_class(int(opts['-n']), sents)
+    elif opts['-m'] == 'twc':
+        model = model_class(sents, opts['-c'])
+    elif opts['-m'] == 'ft':
+        model = model_class(sents, opts['-c'])
     else:
         model = model_class(sents)
 
