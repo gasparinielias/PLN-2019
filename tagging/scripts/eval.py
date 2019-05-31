@@ -15,16 +15,22 @@ import pickle
 import sys
 
 from docopt import docopt
-from collections import defaultdict
 from sklearn.metrics import confusion_matrix
-from sklearn.utils.multiclass import unique_labels
 
 from tagging.ancora import SimpleAncoraCorpusReader
 from tagging.consts import ANCORA_CORPUS_PATH
 
 
+def progress(msg, width=None):
+    """Ouput the progress of something on the same line."""
+    if not width:
+        width = len(msg)
+    sys.stderr.write('\b' * width + msg)
+    sys.stderr.flush()
+
+
 def plot_confusion_matrix(cm, labels):
-    cmap=plt.cm.Blues
+    cmap = plt.cm.Blues
     fig, ax = plt.subplots()
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
@@ -50,20 +56,23 @@ def plot_confusion_matrix(cm, labels):
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
-    plt.savefig('cm.png')
+    plt.savefig('confusion_matrix.png')
+
 
 def print_results(model, tagged_sents, show_confusion_matrix):
-    pred, ground_truth = [], []
+    pred = np.array([])
+    ground_truth = np.array([])
     unknown = []
-    for tsent in tagged_sents:
+    n = len(tagged_sents)
+    for i, tsent in enumerate(tagged_sents):
         sent, gt = zip(*tsent)
-        pred += model.tag(sent)
-        ground_truth += gt
+        pred = np.concatenate((pred, model.tag(sent)))
+        ground_truth = np.concatenate((ground_truth, gt))
         unknown += map(model.unknown, sent)
+        progress('{:3.1f}%'.format(i * 100 / n))
 
-    labels, counts = np.unique(ground_truth + pred, return_counts=True)
-    pred = np.array(pred)
-    ground_truth = np.array(ground_truth)
+    labels, counts = np.unique(np.concatenate((ground_truth, pred)),
+                               return_counts=True)
     unknown = np.array(unknown)
     known = np.invert(unknown)
 
