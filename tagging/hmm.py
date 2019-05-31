@@ -271,14 +271,18 @@ class ViterbiTagger():
 
     def fill_column(self, i, token):
         self._pi[i] = col = {}
-        for prev_tags, (prob, tagging) in self._pi[i - 1].items():
-            for tag in self.tagset:
-                new_prob = prob + \
-                    self._model.trans_log_prob(tag, prev_tags) + \
-                    self._model.out_log_prob(token, tag)
+        for tag in self.tagset:
+            out_prob = self._model.out_prob(token, tag)
+            if out_prob == 0:
+                continue
 
-                if new_prob == -math.inf:
+            out_log_prob = math.log2(out_prob)
+            for prev_tags, (prob, tagging) in self._pi[i - 1].items():
+                trans_prob = self._model.trans_prob(tag, prev_tags)
+                if trans_prob == 0:
                     continue
+
+                new_prob = prob + out_log_prob + math.log2(trans_prob)
                 new_tags = (prev_tags + (tag,))[1:]
                 if new_tags not in col or col[new_tags][0] < new_prob:
                     col[new_tags] = (new_prob, tagging + [tag])
