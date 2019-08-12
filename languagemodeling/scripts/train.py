@@ -20,8 +20,7 @@ from docopt import docopt
 import pickle
 import numpy as np
 
-from nltk.corpus import gutenberg
-
+from nltk.corpus import gutenberg 
 from languagemodeling.consts import MODELS_DIR, SEED, TRAIN_PER
 from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram, BackOffNGram
 from languagemodeling.scripts import corpus_helper

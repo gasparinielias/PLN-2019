@@ -1,5 +1,5 @@
 # https://docs.python.org/3/library/collections.html
-from collections import defaultdict
+from collections import defaultdict, Counter
 import math
 import numpy as np
 
@@ -296,7 +296,6 @@ class BackOffNGram(NGram):
         self._compute_denoms()
         self._compute_alpha()
 
-
     def _compute_A(self):
         self._A = a = defaultdict(set)
         for kgram in self._count.keys():
@@ -320,7 +319,7 @@ class BackOffNGram(NGram):
             self._compute_alpha()
 
             perplexity = self.perplexity(sents)
-            if best_beta == None or best_perplexity > perplexity:
+            if best_beta is None or best_perplexity > perplexity:
                 best_beta = self._beta
                 best_perplexity = perplexity
         self._beta = best_beta
@@ -380,32 +379,50 @@ class SentSorter():
     def __init__(self, model):
         self.model = model
 
-    def get_most_probable_token(self, possible_tokens, prev_tokens):
-        best_p = 0
-        best_t = ''
-        for token in possible_tokens:
-            p = self.model.cond_prob(token, prev_tokens)
-            if p > best_p:
-                best_p = p
-                best_t = token
+    def sort(self, shuffled_sent):
+        """ table:
+            (n-1)-gram: (p, counter, path)
 
-        return best_t
-
-    def sort_probable_sents(self, shuffled_sents):
-        """ Get the most probable sentences out of the shuffled ones
-            according to the model probabilities. """
-
+            for token in sent:
+                for ngram in prev_col:
+                    if not available:
+                        continue
+                    p = p + model.cond_prob(token, ngram)
+                    new_ngram = (ngram + (token,))[1:]
+                    if new_ngram not in new_col or p < p:
+                        new_col[new_ngram] = (new_p, available - 1, path + token)
+                    
+        """
         n = self.model._n
-        sorted_sents = []
-        for s in shuffled_sents:
-            sent = s.copy()
+        self._pi = {
+            0: {
+                (START_TOKEN,) * (n - 1): (math.log2(1.0), Counter(shuffled_sent), ())
+            }
+        }
 
-            new_sent = ['<s>'] * (n - 1)
-            while sent:
-                next_tok = self.get_most_probable_token(sent, tuple(new_sent[-n + 1:]))
-                new_sent += [next_tok]
-                sent.remove(next_tok)
-            new_sent = new_sent[n - 1:]
-            sorted_sents.append(new_sent)
+        for i in range(len(shuffled_sent)):
+            self._pi[i + 1] = col = {}
+            prev_col = self._pi[i]
 
-        return sorted_sents
+            for ngram, (prev_p, counts, path) in prev_col.items():
+                for token in counts:
+                    if not counts[token]:
+                        continue
+
+                    p = prev_p + math.log2(self.model.cond_prob(token, ngram))
+                    new_ngram = (ngram + (token,))[1:]
+                    if new_ngram not in col or col[new_ngram][0] < p:
+                        new_counts = counts.copy()
+                        new_counts[token] -= 1
+                        col[new_ngram] = (p, new_counts, path + (token,))
+
+        max_path = None
+        max_p = -math.inf
+        last_col = self._pi[len(shuffled_sent)]
+        for ngram, (prev_p, counts, path) in last_col.items():
+            p = prev_p + math.log2(self.model.cond_prob(END_TOKEN, ngram))
+            if max_path is None or p > max_p:
+                max_p = p
+                max_path = path
+
+        return max_path
